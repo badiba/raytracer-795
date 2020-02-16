@@ -4,23 +4,17 @@
 #include "defs.h"
 #include "Eigen/Dense"
 
-using namespace Eigen;
-
-using namespace std;
-
-// Class for point lights
 class PointLight
 {
 public:
-    Vector3f position;	// Position of the point light
+    Eigen::Vector3f position;
 
-    PointLight(const Vector3f & position, const Vector3f & intensity);	// Constructor
-    Vector3f computeLightContribution(const Vector3f& p); // Compute the contribution of light at point p
+    PointLight(const Eigen::Vector3f& position, const Eigen::Vector3f& intensity);
+    Eigen::Vector3f computeLightContribution(const Eigen::Vector3f& p);
 
 private:
 
-    Vector3f intensity;	// Intensity of the point light
+    Eigen::Vector3f intensity;
 };
-
 
 #endif

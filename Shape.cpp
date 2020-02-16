@@ -4,28 +4,32 @@
 #include "math.h"
 #include <limits>
 
-Shape::Shape(void) {
+using namespace Eigen;
+
+Shape::Shape(void)
+{
 }
 
 Shape::Shape(int id, int matIndex)
-        : id(id), matIndex(matIndex) {
+        : id(id), matIndex(matIndex)
+{
 }
 
-Sphere::Sphere(void) {}
+Sphere::Sphere(void)
+{
+}
 
-/* Constructor for sphere. You will implement this. */
 Sphere::Sphere(int id, int matIndex, int cIndex, float R)
-        : Shape(id, matIndex) {
+        : Shape(id, matIndex)
+{
     this->id = id;
     this->matIndex = matIndex;
     this->cIndex = cIndex;
     this->R = R;
 }
 
-/* Sphere-ray intersection routine. You will implement this.
-Note that ReturnVal structure should hold the information related to the intersection point, e.g., coordinate of that point, normal at that point etc.
-You should to declare the variables in ReturnVal structure you think you will need. It is in defs.h file. */
-ReturnVal Sphere::intersect(const Ray &ray) const {
+ReturnVal Sphere::intersect(const Ray& ray) const
+{
     Vector3f d, o, c;
     d = ray.direction;
     o = ray.origin;
@@ -33,18 +37,24 @@ ReturnVal Sphere::intersect(const Ray &ray) const {
     ReturnVal ret;
 
     float discriminant = ((d.dot(o - c)) * (d.dot(o - c)) - (d.dot(d)) * ((o - c).dot(o - c) - R * R));
-    if (discriminant < pScene->intTestEps) {
+    if (discriminant < pScene->intTestEps)
+    {
         ret.full = false;
         return ret;
     }
     float t1 = (-d.dot(o - c) + sqrt(discriminant)) / (d.dot(d));
     float t2 = (-d.dot(o - c) - sqrt(discriminant)) / (d.dot(d));
     Vector3f intersectionPoint;
-    if (t2 > t1 && t2 > 0) {
+    if (t2 > t1 && t2 > 0)
+    {
         intersectionPoint = ray.getPoint(t1);
-    } else if (t1 > 0) {
+    }
+    else if (t1 > 0)
+    {
         intersectionPoint = ray.getPoint(t2);
-    } else {
+    }
+    else
+    {
         ret.full = false;
         return ret;
     }
@@ -56,11 +66,13 @@ ReturnVal Sphere::intersect(const Ray &ray) const {
     return ret;
 }
 
-Triangle::Triangle(void) {}
+Triangle::Triangle(void)
+{
+}
 
-/* Constructor for triangle. You will implement this. */
 Triangle::Triangle(int id, int matIndex, int p1Index, int p2Index, int p3Index)
-        : Shape(id, matIndex) {
+        : Shape(id, matIndex)
+{
     this->id = id;
     this->matIndex = matIndex;
     this->p1Index = p1Index;
@@ -68,10 +80,8 @@ Triangle::Triangle(int id, int matIndex, int p1Index, int p2Index, int p3Index)
     this->p3Index = p3Index;
 }
 
-/* Triangle-ray intersection routine. You will implement this.
-Note that ReturnVal structure should hold the information related to the intersection point, e.g., coordinate of that point, normal at that point etc.
-You should to declare the variables in ReturnVal structure you think you will need. It is in defs.h file. */
-ReturnVal Triangle::intersect(const Ray &ray) const {
+ReturnVal Triangle::intersect(const Ray& ray) const
+{
     Vector3f a, b, c;
     a = pScene->vertices[p1Index - 1];
     b = pScene->vertices[p2Index - 1];
@@ -94,7 +104,8 @@ ReturnVal Triangle::intersect(const Ray &ray) const {
     t = (matrix_t).determinant() / (det);
 
     if (t >= -pScene->intTestEps && (beta + gamma <= 1) && beta >= -pScene->intTestEps &&
-        gamma >= -pScene->intTestEps) {
+            gamma >= -pScene->intTestEps)
+    {
         ret.normal = normal / normal.norm();
         ret.point = ray.getPoint(t);
         ret.full = true;
@@ -103,33 +114,36 @@ ReturnVal Triangle::intersect(const Ray &ray) const {
     return ret;
 }
 
-Mesh::Mesh() {}
+Mesh::Mesh()
+{
+}
 
-/* Constructor for mesh. You will implement this. */
-Mesh::Mesh(int id, int matIndex, const vector<Triangle> &faces)
-        : Shape(id, matIndex) {
+Mesh::Mesh(int id, int matIndex, const std::vector<Triangle>& faces)
+        : Shape(id, matIndex)
+{
     this->id = id;
     this->matIndex = matIndex;
     this->faces = faces;
 }
 
-/* Mesh-ray intersection routine. You will implement this.
-Note that ReturnVal structure should hold the information related to the intersection point, e.g., coordinate of that point, normal at that point etc.
-You should to declare the variables in ReturnVal structure you think you will need. It is in defs.h file. */
-ReturnVal Mesh::intersect(const Ray &ray) const {
+ReturnVal Mesh::intersect(const Ray& ray) const
+{
     ReturnVal ret;
 
     ReturnVal nearestRet;
     float nearestPoint = std::numeric_limits<float>::max();
     float returnDistance = 0;
 
-    for (int i = 0; i < faces.size(); i++) {
+    for (int i = 0; i < faces.size(); i++)
+    {
         ret = faces[i].intersect(ray);
 
-        if (ret.full) {
+        if (ret.full)
+        {
             returnDistance = (ret.point - ray.origin).norm();
 
-            if (returnDistance < nearestPoint) {
+            if (returnDistance < nearestPoint)
+            {
                 nearestPoint = returnDistance;
                 nearestRet = ret;
             }

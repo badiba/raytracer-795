@@ -5,67 +5,68 @@
 #include "Ray.h"
 #include "Eigen/Dense"
 
-using namespace Eigen;
 #include "defs.h"
 
-using namespace std;
-
-// Base class for any shape object
 class Shape
 {
 public:
-	int id;	        // Id of the shape
-	int matIndex;	// Material index of the shape
+    int id;
+    int matIndex;
 
-	virtual ReturnVal intersect(const Ray & ray) const = 0; // Pure virtual method for intersection test. You must implement this for sphere, triangle, and mesh.
+    virtual ReturnVal intersect(
+            const Ray& ray) const = 0;
 
     Shape(void);
-    Shape(int id, int matIndex); // Constructor
+
+    Shape(int id, int matIndex);
 
 private:
-	// Write any other stuff here
+
 };
 
-// Class for sphere
-class Sphere: public Shape
+class Sphere : public Shape
 {
 public:
-	Sphere(void);	// Constructor
-	Sphere(int id, int matIndex, int cIndex, float R);	// Constructor
-	ReturnVal intersect(const Ray & ray) const;	// Will take a ray and return a structure related to the intersection information. You will implement this.
+    Sphere(void);
+
+    Sphere(int id, int matIndex, int cIndex, float R);
+
+    ReturnVal intersect(
+            const Ray& ray) const;
 
 private:
-	// Write any other stuff here
-	int cIndex;
-	float R;
+    int cIndex;
+    float R;
 };
 
-// Class for triangle
-class Triangle: public Shape
+class Triangle : public Shape
 {
 public:
-	Triangle(void);	// Constructor
-	Triangle(int id, int matIndex, int p1Index, int p2Index, int p3Index);	// Constructor
-	ReturnVal intersect(const Ray & ray) const; // Will take a ray and return a structure related to the intersection information. You will implement this.
+    Triangle(void);
+
+    Triangle(int id, int matIndex, int p1Index, int p2Index, int p3Index);
+
+    ReturnVal intersect(
+            const Ray& ray) const;
 
 private:
-	// Write any other stuff here
-	int p1Index;
-	int p2Index;
-	int p3Index;
+    int p1Index;
+    int p2Index;
+    int p3Index;
 };
 
-// Class for mesh
-class Mesh: public Shape
+class Mesh : public Shape
 {
 public:
-	Mesh(void);	// Constructor
-	Mesh(int id, int matIndex, const vector<Triangle>& faces);	// Constructor
-	ReturnVal intersect(const Ray & ray) const; // Will take a ray and return a structure related to the intersection information. You will implement this.
+    Mesh(void);
+
+    Mesh(int id, int matIndex, const std::vector<Triangle>& faces);
+
+    ReturnVal intersect(
+            const Ray& ray) const;
 
 private:
-	// Write any other stuff here
-	vector<Triangle> faces;
+    std::vector<Triangle> faces;
 };
 
 #endif

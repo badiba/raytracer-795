@@ -4,22 +4,20 @@
 #include "defs.h"
 #include "Eigen/Dense"
 
-using namespace Eigen;
-// Class for Ray object. You will implement the methods
 class Ray
 {
 public:
-	Vector3f origin;	// Origin of the ray
-	Vector3f direction;	// Direction of the ray
+	Eigen::Vector3f origin;
+	Eigen::Vector3f direction;
 
-	Ray();	// Constuctor
-	Ray(const Vector3f& origin, const Vector3f& direction);	// Constuctor
+	Ray();
+	Ray(const Eigen::Vector3f& origin, const Eigen::Vector3f& direction);
 
-	Vector3f getPoint(float t) const;       // Return the point along the ray at ray parameter t
-	float gett(const Vector3f & p) const;   // Return the t parameter at point p along the ray
+	Eigen::Vector3f getPoint(float t) const;
+	float gett(const Eigen::Vector3f & p) const;
 
 private:
-	// Write any other stuff here.
+
 };
 
 #endif

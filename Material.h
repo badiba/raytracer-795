@@ -4,23 +4,20 @@
 #include "defs.h"
 #include "Eigen/Dense"
 
-using namespace Eigen;
-
-// Class to hold variables related to a material
 class Material
 {
 public:
-	int id;	// Material id
-	int phongExp = 0;	// Phong exponent
-	Vector3f ambientRef;	// Coefficients for ambient reflection
-	Vector3f diffuseRef;	// Coefficients for diffuse reflection
-	Vector3f specularRef;	// Coefficients for specular reflection
-	Vector3f mirrorRef;		// Coefficients for mirror reflection
+	int id;
+	int phongExp = 0;
+	Eigen::Vector3f ambientRef;
+	Eigen::Vector3f diffuseRef;
+	Eigen::Vector3f specularRef;
+	Eigen::Vector3f mirrorRef;
 
-	Material(void);	// Constructor
+	Material(void);
 
 private:
-	// Write any other stuff here
+
 };
 
 #endif
