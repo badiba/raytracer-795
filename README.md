@@ -20,4 +20,4 @@ Supported shading models in the Basic Raytracer are Diffuse Shading, Blinn-Phong
 Basic Raytracer supports shadows. Shadow computation is straight-forward. If there is an object between a point and light source, that point is considered to be in shadow with respect to the light source.
 
 ### 1d. Bugs and fixes
-![Sc](/assets/cornellbox.jpg)
+![Sc](/assets/blackdots.jpg)
