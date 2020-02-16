@@ -4,6 +4,8 @@ This page includes information of progress and personal experience on the homewo
 
 # Content
 
+This section includes different versions of the Raytracer. In every new version, a new feature is added progressively. For each version there is a subsection under this section.
+
 ## 1. Basic Raytracer
 
 In this first version of Raytracer, I focused on ray-object intersection, basic shading and shadows. There is no acceleration technique used in this version.
