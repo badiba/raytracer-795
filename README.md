@@ -1,37 +1,19 @@
-## Welcome to GitHub Pages
+## Introduction
 
-You can use the [editor on GitHub](https://github.com/badiba/raytracer-795/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+This page includes information of progress and personal experience on the homeworks of CENG795 Advanced Ray Tracing class. It is under development and updated frequently.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+## Basic Raytracer
 
-### Markdown
+In this first version of Raytracer, I focused on ray-object intersection, basic shading and shadows. There is no acceleration technique used in this version.
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+#### Ray-Object Intersection
+Supported object types in the Basic Raytracer are Sphere, Triangle and Mesh which consist of multiple Triangles.
 
-```markdown
-Syntax highlighted code block
+#### Basic Shading
+Supported shading models in the Basic Raytracer are Diffuse Shading, Blinn-Phong (Specular) Shading and Ambient Shading. Ambient Shading is used to ease complex light computations.
 
-# Header 1
-## Header 2
-### Header 3
+#### Shadow
+Basic Raytracer supports shadows. Shadow computation is straight-forward. If there is an object between a point and light source, that point is considered to be in shadow with respect to the light source.
 
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/badiba/raytracer-795/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+#### Bugs and fixes
+![Sc](assets/cornellbox.png)
