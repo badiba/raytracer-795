@@ -53,3 +53,5 @@ The another bug can be observed at the bunny scene. It was caused by the wrong i
 Finally, I was not paying attetion to correcting a non-orthogonal camera vectors. For simplicity, camera vectors in XML file may not be orthogonal. It is programmers responsibility to correct these vectors. This bug caused my camera to have incorrect angle.
 
 ### 1.4. Conclusion
+
+At this point, I'm very excited to work on newer versions of the Raytracer. With `Reflection` and `Refraction` our images will definitely look better. However, I am kind of worried about the possible unnoticed bugs in the current version. If there are busg which I could not find, they will probably a big problem when it comes to implement more complex features. I obviously try to keep everything as simple as possible and write my code clean. But as a student, time is the most valuable resource and it's very limited.
