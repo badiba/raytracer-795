@@ -37,6 +37,7 @@ Here are some scenes rendered with Basic Raytracer. Rendering time is also inclu
 I encountered several bugs during the implementation of Basic Raytracer. If you look closely at the below image, you will see that there are black dots on the gray square behind the spheres. The reason behind this is `Intersection Epsilon Value`. This value is used to tolerate floating point errors for intersection calculations. I forgot to set a default value for this variable. When the program tried to access this variable it was just a random number. Intersection tests were failing due to this problem resulting in the black dots as seen below.
 
 ![Sc](/assets/blackdots.jpg)
+
 Figure 1: Black dots on cornell box.
 
 Obviously this wasn't the only scene that the black dots appeared. Moreover, at different runs, this bug kept appearing and disappearing since at each run it had a random value. This helped me to understand the reason behind it. Setting a default value obviously fixed it.
