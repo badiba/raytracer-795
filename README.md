@@ -57,4 +57,4 @@ Finally, I was not paying attetion to correcting a non-orthogonal camera vectors
 
 At this point, I'm very excited to work on newer versions of the Raytracer. With `Reflection` and `Refraction` our images will definitely look better. However, I am kind of worried about the possible unnoticed bugs in the current version. If there are bugs which I could not find, they will probably a big problem when it comes to implement more complex features. I obviously try to keep everything as simple as possible and write my code clean. But as a student, time is the most valuable resource and it's very limited.
 
-## 1. Recursive Ray Tracing - Week 3 & 4
+## 2. Recursive Ray Tracing - Week 3 & 4
