@@ -1,12 +1,13 @@
 # Introduction
 
-This page includes progress information and personal experiences on the homeworks of CENG795 Advanced Ray Tracing class. It is under development and updated frequently. Owner of this page is Bahadir Coskun.
+This page includes information on progress and personal experiences on the homeworks of CENG795 Advanced Ray Tracing class. It is under development and updated frequently. Owner of this page is Bahadir Coskun.
 
 # Content
 
 This section includes different versions of the Raytracer. In every new version, new features are added. Each version has it's own subsection. These subsections include;
 
 - brief explanations of what is being added in that version, 
+- resulting images in that version,
 - what kind of bugs have been encountered and how did I manage to fix them, 
 - my personal experiences. 
 
@@ -54,4 +55,6 @@ Finally, I was not paying attetion to correcting a non-orthogonal camera vectors
 
 ### 1.4. Conclusion
 
-At this point, I'm very excited to work on newer versions of the Raytracer. With `Reflection` and `Refraction` our images will definitely look better. However, I am kind of worried about the possible unnoticed bugs in the current version. If there are busg which I could not find, they will probably a big problem when it comes to implement more complex features. I obviously try to keep everything as simple as possible and write my code clean. But as a student, time is the most valuable resource and it's very limited.
+At this point, I'm very excited to work on newer versions of the Raytracer. With `Reflection` and `Refraction` our images will definitely look better. However, I am kind of worried about the possible unnoticed bugs in the current version. If there are bugs which I could not find, they will probably a big problem when it comes to implement more complex features. I obviously try to keep everything as simple as possible and write my code clean. But as a student, time is the most valuable resource and it's very limited.
+
+## 1. Recursive Ray Tracing - Week 3 & 4
