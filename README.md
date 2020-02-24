@@ -17,9 +17,9 @@ If applicable, time comparisons of different implementations are also added in t
 
 This is the very first version of the Raytracer. In this version, I focused on ray-object intersection, basic shading and shadows. There is no acceleration technique used in this version.
 
-### - 1.1. Added features
+### 1.1. Added features
 
-### 1.1.a. XML Parser and Scene
+### * 1.1.a. XML Parser and Scene
 In this project, `Scenes` will be parsed from an XML file. Therefore, first utility that is added to the project is an XML parser. These `Scenes` will evolve with the project since there will be added components in them. Currently a `Scene` includes `Cameras`, `Point Lights`, `Materials`, and `Objects` along with their specifications which are details and will be avoided in this page.
 
 ### 1.1.b. Ray-Object Intersection
