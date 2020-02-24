@@ -54,6 +54,10 @@ Here are some scenes rendered with Basic Raytracer. Rendering time is also inclu
 
 > Figure 1.2.5: Science Tree scene. Time: 3m8.178s
 
+Since the images are compressed to `jpeg` format, their quality is lower than the original images.
+
+Currently it takes too much time to render these scenes. In the next version, we will speed up rendering by using BVH and multithreading.
+
 ### 1.3. Bugs and fixes
 I encountered several bugs during the implementation of Basic Raytracer. If you look closely at the below image, you will see that there are black dots on the gray square behind the spheres. The reason behind this is `Intersection Epsilon Value`. This value is used to tolerate floating point errors for intersection calculations. I forgot to set a default value for this variable. When the program tried to access this variable it was just a random number. Intersection tests were failing due to this problem resulting in the black dots as seen below.
 
