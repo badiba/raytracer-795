@@ -51,7 +51,7 @@ The another bug can be observed at the bunny scene. It was caused by the wrong i
 
 ![Sc](/assets/hw1-bunny-pages.jpg)
 
-Finally, I was not paying attetion to correcting a non-orthogonal camera vectors. For simplicity, camera vectors in XML file may not be orthogonal. It is programmers responsibility to correct these vectors. This bug caused my camera to have incorrect angle.
+Finally, I was not paying attention to correcting a non-orthogonal camera vectors. For simplicity, camera vectors in XML file may not be orthogonal. It is programmers responsibility to correct these vectors. This bug caused my camera to have incorrect angle.
 
 ### 1.4. Conclusion
 
