@@ -1,5 +1,6 @@
 #include "Scene.h"
 #include "Camera.h"
+#include "BVH.h"
 #include "Light.h"
 #include "Material.h"
 #include "Shape.h"
@@ -101,12 +102,18 @@ Color Scene::shading(Ray ray, ReturnVal ret, Material* mat)
 
     // Clamp and return.
     rawColor = rawColor.cwiseMin(255);
-    Color clampedColor{ (unsigned char)(rawColor(0)), (unsigned char)(rawColor(1)), (unsigned char)(rawColor(2)) };
+    Color clampedColor{ (unsigned char)(rawColor(0)),
+    		(unsigned char)(rawColor(1)),
+    		(unsigned char)(rawColor(2))};
     return clampedColor;
 }
 
 void Scene::renderScene(void)
 {
+	// Create BVH.
+	bvh = new BVH();
+	bvh->DebugBVH();
+
     // Save an image for all cameras.
     for (int i = 0; i < cameras.size(); i++)
     {
@@ -121,6 +128,11 @@ void Scene::renderScene(void)
         {
             for (int j = 0; j < cam->imgPlane.ny; j++)
             {
+            	if (i != 360 || j != 20){
+					//image.setPixelValue(i, j, Color{0,0,0});
+					//continue;
+            	}
+
                 ray = cam->getPrimaryRay(i, j);
 
                 ReturnVal ret;
@@ -129,6 +141,7 @@ void Scene::renderScene(void)
                 float nearestPoint = std::numeric_limits<float>::max();
                 int nearestObjectIndex = 0;
 
+                /*
                 // Check intersection of the ray with all objects.
                 for (int k = 0; k < objects.size(); k++)
                 {
@@ -144,8 +157,18 @@ void Scene::renderScene(void)
                             nearestRet = ret;
                         }
                     }
+                }*/
+
+                nearestRet = bvh->FindIntersection(ray, bvh->GetRoot());
+
+                if (nearestRet.full){
+					image.setPixelValue(i, j, Color{255,0,0});
+                }
+                else{
+					image.setPixelValue(i, j, Color{0,0,0});
                 }
 
+                /*
                 // If any intersection happened, compute shading.
                 if (nearestRet.full)
                 {
@@ -158,7 +181,7 @@ void Scene::renderScene(void)
                     image.setPixelValue(i, j, Color{ (unsigned char)backgroundColor(0),
                             (unsigned char)backgroundColor(1),
                             (unsigned char)backgroundColor(2) });
-                }
+                }*/
             }
         }
 

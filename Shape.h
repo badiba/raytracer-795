@@ -15,6 +15,9 @@ public:
 
     virtual ReturnVal intersect(
             const Ray& ray) const = 0;
+    virtual void FillPrimitives(std::vector<Shape*> &primitives) const = 0;
+    virtual BBox GetBoundingBox() const = 0;
+    virtual Eigen::Vector3f GetCenter() const = 0;
 
     Shape(void);
 
@@ -33,6 +36,9 @@ public:
 
     ReturnVal intersect(
             const Ray& ray) const;
+    void FillPrimitives(std::vector<Shape*> &primitives) const;
+	BBox GetBoundingBox() const;
+	Eigen::Vector3f GetCenter() const;
 
 private:
     int cIndex;
@@ -48,6 +54,9 @@ public:
 
     ReturnVal intersect(
             const Ray& ray) const;
+	void FillPrimitives(std::vector<Shape*> &primitives) const;
+	BBox GetBoundingBox() const;
+	Eigen::Vector3f GetCenter() const;
 
 private:
     int p1Index;
@@ -64,6 +73,9 @@ public:
 
     ReturnVal intersect(
             const Ray& ray) const;
+	void FillPrimitives(std::vector<Shape*> &primitives) const;
+	BBox GetBoundingBox() const;
+	Eigen::Vector3f GetCenter() const;
 
 private:
     std::vector<Triangle> faces;

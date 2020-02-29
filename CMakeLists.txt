@@ -336,4 +336,4 @@ add_executable(477raytracer
         Shape.cpp
         Shape.h
         tinyxml2.cpp
-        tinyxml2.h)
+        tinyxml2.h BVH.cpp BVH.h BTNode.h)

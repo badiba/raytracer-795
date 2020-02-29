@@ -6,6 +6,33 @@
 
 using namespace Eigen;
 
+namespace ShapeHelpers
+{
+	float FindMinOfThree(float a, float b, float c)
+	{
+		if (a <= b && a <= c){
+			return a;
+		}
+		else if (b <= a && b <= c){
+			return b;
+		}
+
+		return c;
+	}
+
+	float FindMaxOfThree(float a, float b, float c)
+	{
+		if (a >= b && a >= c){
+			return a;
+		}
+		else if (b >= a && b >= c){
+			return b;
+		}
+
+		return c;
+	}
+}
+
 Shape::Shape(void)
 {
 }
@@ -66,6 +93,25 @@ ReturnVal Sphere::intersect(const Ray& ray) const
     return ret;
 }
 
+void Sphere::FillPrimitives(std::vector<Shape*> &primitives) const
+{
+	primitives.push_back(new Sphere(id, matIndex, cIndex, R));
+}
+
+BBox Sphere::GetBoundingBox() const
+{
+	Vector3f center = pScene->vertices[cIndex - 1];
+	Vector3f minPoint = {center[0] - R, center[1] - R, center[2] - R};
+	Vector3f maxPoint = {center[0] + R, center[1] + R, center[2] + R};
+
+	return BBox{minPoint, maxPoint};
+}
+
+Eigen::Vector3f Sphere::GetCenter() const
+{
+	return pScene->vertices[cIndex - 1];
+}
+
 Triangle::Triangle(void)
 {
 }
@@ -114,6 +160,41 @@ ReturnVal Triangle::intersect(const Ray& ray) const
     return ret;
 }
 
+void Triangle::FillPrimitives(std::vector<Shape*> &primitives) const
+{
+	primitives.push_back(new Triangle(id, matIndex, p1Index, p2Index, p3Index));
+}
+
+BBox Triangle::GetBoundingBox() const
+{
+	Vector3f a, b, c;
+	a = pScene->vertices[p1Index - 1];
+	b = pScene->vertices[p2Index - 1];
+	c = pScene->vertices[p3Index - 1];
+
+	Vector3f minPoint = {ShapeHelpers::FindMinOfThree(a[0], b[0], c[0]),
+			ShapeHelpers::FindMinOfThree(a[1], b[1], c[1]),
+			ShapeHelpers::FindMinOfThree(a[2], b[2], c[2])};
+
+	Vector3f maxPoint = {ShapeHelpers::FindMaxOfThree(a[0], b[0], c[0]),
+			ShapeHelpers::FindMaxOfThree(a[1], b[1], c[1]),
+			ShapeHelpers::FindMaxOfThree(a[2], b[2], c[2])};
+
+	return BBox{minPoint, maxPoint};
+}
+
+Eigen::Vector3f Triangle::GetCenter() const
+{
+	Vector3f a, b, c;
+	a = pScene->vertices[p1Index - 1];
+	b = pScene->vertices[p2Index - 1];
+	c = pScene->vertices[p3Index - 1];
+
+	return Vector3f {(a[0] + b[0] + c[0]) / 3.0f,
+			(a[1] + b[1] + c[1]) / 3.0f,
+			(a[2] + b[2] + c[2]) / 3.0f};
+}
+
 Mesh::Mesh()
 {
 }
@@ -151,4 +232,22 @@ ReturnVal Mesh::intersect(const Ray& ray) const
     }
 
     return nearestRet;
+}
+
+void Mesh::FillPrimitives(std::vector<Shape*> &primitives) const
+{
+	for (int i = 0; i < faces.size(); i++)
+	{
+		faces[i].FillPrimitives(primitives);
+	}
+}
+
+BBox Mesh::GetBoundingBox() const
+{
+	return BBox{};
+}
+
+Eigen::Vector3f Mesh::GetCenter() const
+{
+	return Vector3f {};
 }
