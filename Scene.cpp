@@ -80,6 +80,40 @@ Vector3f Scene::ambient(Material* mat)
 	return ambientColor;
 }
 
+Vector3f Scene::Mirror(Ray ray, ReturnVal ret, Material* mat, int depth)
+{
+	// Angle computations.
+	Vector3f wo = -ray.direction;
+	float n_wo = ret.normal.dot(wo);
+	Vector3f wr = -wo + ret.normal * 2 * n_wo;
+	wr = wr / wr.norm();
+
+	// Check intersection of new ray.
+	Ray reflectedRay(ret.point + wo * shadowRayEps, wr);
+	ReturnVal nearestRet = bvh->FindIntersection(reflectedRay);
+	int materialIndex = nearestRet.matIndex - 1;
+
+	if (nearestRet.full)
+	{
+		if (materials[materialIndex]->mirrorRef == Vector3f(0, 0, 0) || depth == 1)
+		{
+			return ambient(materials[materialIndex]) + diffuse(nearestRet,
+					materials[materialIndex], reflectedRay);
+		}
+		else
+		{
+			return ambient(materials[materialIndex]) + diffuse(nearestRet,
+					materials[materialIndex],
+					reflectedRay) + mat->mirrorRef.cwiseProduct(
+					Mirror(reflectedRay, nearestRet, materials[materialIndex], depth - 1));
+		}
+	}
+	else
+	{
+		return backgroundColor;
+	}
+}
+
 Color Scene::shading(Ray ray, ReturnVal ret, Material* mat)
 {
 	// Create a new rawColor (not bounded to 255).

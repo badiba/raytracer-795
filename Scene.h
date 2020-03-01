@@ -58,7 +58,7 @@ private:
 
 	void ThreadedRendering(int widthStart, int heightStart, int widthOffset, int heightOffset, Image& image, Camera* cam);
 
-	//Eigen::Vector3f Mirror(Ray ray, ReturnVal ret, Material* mat, int depth);
+	Eigen::Vector3f Mirror(Ray ray, ReturnVal ret, Material* mat, int depth);
 };
 
 #endif
