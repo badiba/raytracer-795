@@ -10,6 +10,7 @@ typedef struct ReturnVal
     Eigen::Vector3f point;
     Eigen::Vector3f normal;
     bool full = false;
+    int matIndex;
 } ReturnVal;
 
 typedef struct BBox

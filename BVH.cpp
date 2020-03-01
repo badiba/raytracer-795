@@ -55,6 +55,10 @@ void BVH::ConstructionHelper(int startIndex, int endIndex, int splitType, BTNode
 	// Stopping condition.
 	if (startIndex == endIndex - 1 || recursionDepth >= bvhMaxRecursionDepth)
 	{
+		if (endIndex - startIndex > 5){
+			std::cout << endIndex - startIndex << std::endl;
+		}
+
 		BBox box;
 		box.startIndex = startIndex;
 		box.endIndex = endIndex;
@@ -116,7 +120,6 @@ ReturnVal BVH::FindIntersection(const Ray& ray, BTNode<BBox>* node)
 		ReturnVal nearestRet;
 		float returnDistance = 0;
 		float nearestPoint = std::numeric_limits<float>::max();
-		int nearestObjectIndex = 0;
 
 		// Check intersection of the ray with all objects in the bounding box.
 		for (int i = startIndex; i < endIndex; i++)
@@ -128,9 +131,9 @@ ReturnVal BVH::FindIntersection(const Ray& ray, BTNode<BBox>* node)
 				returnDistance = (ret.point - ray.origin).norm();
 				if (returnDistance < nearestPoint)
 				{
-					nearestObjectIndex = i;
 					nearestPoint = returnDistance;
 					nearestRet = ret;
+					nearestRet.matIndex = primitives[i]->matIndex;
 				}
 			}
 		}
@@ -295,7 +298,5 @@ void BVH::DebugBVH()
 		std::cout << primitives[i]->id << std::endl;
 	}*/
 
-	std::cout << "ne?" << std::endl;
 	std::cout << "min: " << root->data.minPoint << " max: " << root->data.maxPoint << std::endl;
-	std::cout << "ne?" << std::endl;
 }
