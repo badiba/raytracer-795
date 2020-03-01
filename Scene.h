@@ -46,6 +46,8 @@ public:
 	void renderScene(void);
 
 private:
+	void PutMarkAt(int x, int y, Image& image);
+
 	Eigen::Vector3f diffuse(ReturnVal ret, Material* mat, Ray ray, PointLight* light);
 
 	bool isDark(Eigen::Vector3f point, PointLight* light);
@@ -54,11 +56,15 @@ private:
 
 	Eigen::Vector3f ambient(Material* mat);
 
-	Color shading(Ray ray, ReturnVal ret, Material* mat);
+	Eigen::Vector3f shading(Ray ray, ReturnVal ret, Material* mat);
 
 	void ThreadedRendering(int widthStart, int heightStart, int widthOffset, int heightOffset, Image& image, Camera* cam);
 
 	Eigen::Vector3f Mirror(Ray ray, ReturnVal ret, Material* mat, int depth);
+
+	Color GeneralShading(Ray ray, ReturnVal ret, Material* mat);
+
+	bool IsMirror(Material* mat);
 };
 
 #endif

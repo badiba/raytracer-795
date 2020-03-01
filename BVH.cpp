@@ -56,7 +56,7 @@ void BVH::ConstructionHelper(int startIndex, int endIndex, int splitType, BTNode
 	if (startIndex == endIndex - 1 || recursionDepth >= bvhMaxRecursionDepth)
 	{
 		if (endIndex - startIndex > 5){
-			std::cout << endIndex - startIndex << std::endl;
+			//std::cout << endIndex - startIndex << std::endl;
 		}
 
 		BBox box;

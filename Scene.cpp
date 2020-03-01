@@ -89,32 +89,52 @@ Vector3f Scene::Mirror(Ray ray, ReturnVal ret, Material* mat, int depth)
 	wr = wr / wr.norm();
 
 	// Check intersection of new ray.
-	Ray reflectedRay(ret.point + wo * shadowRayEps, wr);
+	Ray reflectedRay(ret.point + ret.normal * shadowRayEps, wr);
 	ReturnVal nearestRet = bvh->FindIntersection(reflectedRay);
 	int materialIndex = nearestRet.matIndex - 1;
 
+	// If ray intersected with object, keep doing shading computations.
 	if (nearestRet.full)
 	{
-		if (materials[materialIndex]->mirrorRef == Vector3f(0, 0, 0) || depth == 1)
+		// If depth reached maxDepth OR material is not a mirror, then compute basic shading and return.
+		if (!IsMirror(materials[materialIndex]) || depth == 1)
 		{
-			return ambient(materials[materialIndex]) + diffuse(nearestRet,
-					materials[materialIndex], reflectedRay);
+			return shading(reflectedRay, nearestRet, materials[materialIndex]);
 		}
+		// Else compute basic shading and keep bouncing.
 		else
 		{
-			return ambient(materials[materialIndex]) + diffuse(nearestRet,
-					materials[materialIndex],
-					reflectedRay) + mat->mirrorRef.cwiseProduct(
+			return shading(reflectedRay, nearestRet, materials[materialIndex]) + materials[materialIndex]->mirrorRef.cwiseProduct(
 					Mirror(reflectedRay, nearestRet, materials[materialIndex], depth - 1));
 		}
 	}
+	// If there is no intersection, then background color is reflected (needs to be confirmed).
 	else
 	{
-		return backgroundColor;
+		return Vector3f{0,0,0};
 	}
 }
 
-Color Scene::shading(Ray ray, ReturnVal ret, Material* mat)
+Color Scene::GeneralShading(Ray ray, ReturnVal ret, Material* mat)
+{
+	// Create a new rawColor (not bounded to 255).
+	Vector3f rawColor = shading(ray, ret, mat);
+
+	if (IsMirror(mat))
+	{
+		rawColor += mat->mirrorRef.cwiseProduct(Mirror(ray, ret, mat, maxRecursionDepth));
+	}
+
+	// Clamp and return.
+	rawColor = rawColor.cwiseMin(255);
+	Color clampedColor{ (unsigned char)(rawColor(0)),
+			(unsigned char)(rawColor(1)),
+			(unsigned char)(rawColor(2)) };
+
+	return clampedColor;
+}
+
+Vector3f Scene::shading(Ray ray, ReturnVal ret, Material* mat)
 {
 	// Create a new rawColor (not bounded to 255).
 	Vector3f rawColor(0, 0, 0);
@@ -135,12 +155,13 @@ Color Scene::shading(Ray ray, ReturnVal ret, Material* mat)
 		rawColor += specular(ray, ret, mat, lights[i]);
 	}
 
-	// Clamp and return.
-	rawColor = rawColor.cwiseMin(255);
-	Color clampedColor{ (unsigned char)(rawColor(0)),
-			(unsigned char)(rawColor(1)),
-			(unsigned char)(rawColor(2)) };
-	return clampedColor;
+	return rawColor;
+}
+
+bool Scene::IsMirror(Material* mat)
+{
+	float mirrorThreshold = 0.001f;
+	return !(mat->mirrorRef[0] < mirrorThreshold && mat->mirrorRef[1] < mirrorThreshold && mat->mirrorRef[2] < mirrorThreshold);
 }
 
 void
@@ -166,7 +187,7 @@ Scene::ThreadedRendering(int widthStart, int heightStart, int widthOffset, int h
 			// If any intersection happened, compute shading.
 			if (nearestRet.full)
 			{
-				image.setPixelValue(i, j, shading(ray, nearestRet,
+				image.setPixelValue(i, j, GeneralShading(ray, nearestRet,
 						materials[nearestRet.matIndex - 1]));
 			}
 				// Else paint with background color.
@@ -213,6 +234,13 @@ void Scene::renderScene(void)
 		// Save image.
 		image.saveImage(cam->imageName);
 	}
+}
+
+void Scene::PutMarkAt(int x, int y, Image& image){
+	image.setPixelValue(x - 1, y, Color{255, 0, 0});
+	image.setPixelValue(x + 1, y, Color{255, 0, 0});
+	image.setPixelValue(x, y - 1, Color{255, 0, 0});
+	image.setPixelValue(x, y + 1, Color{255, 0, 0});
 }
 
 // Parses XML file.
@@ -314,6 +342,8 @@ Scene::Scene(const char* xmlPath)
 		str = materialElement->GetText();
 		sscanf(str, "%f %f %f", &materials[curr]->specularRef(0), &materials[curr]->specularRef(1),
 				&materials[curr]->specularRef(2));
+
+		// Parse mirrors.
 		materialElement = pMaterial->FirstChildElement("MirrorReflectance");
 		if (materialElement != nullptr)
 		{
@@ -327,6 +357,8 @@ Scene::Scene(const char* xmlPath)
 			materials[curr]->mirrorRef(1) = 0.0;
 			materials[curr]->mirrorRef(2) = 0.0;
 		}
+
+		// Parse PhongExponent.
 		materialElement = pMaterial->FirstChildElement("PhongExponent");
 		if (materialElement != nullptr)
 		{
@@ -503,4 +535,6 @@ Scene::Scene(const char* xmlPath)
 
 		pLight = pLight->NextSiblingElement("PointLight");
 	}
+
+	std::cout << "Parsing complete." << std::endl;
 }
