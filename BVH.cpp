@@ -101,7 +101,12 @@ void BVH::ConstructionHelper(int startIndex, int endIndex, int splitType, BTNode
 	ConstructionHelper(swapIndex, endIndex, splitType + 1, node->right, recursionDepth + 1);
 }
 
-ReturnVal BVH::FindIntersection(const Ray& ray, BTNode<BBox>* node)
+ReturnVal BVH::FindIntersection(const Ray& ray)
+{
+	return FindIntersectionWithBVH(ray, root);
+}
+
+ReturnVal BVH::FindIntersectionWithBVH(const Ray& ray, BTNode<BBox>* node)
 {
 	// Empty
 	if (!node){
@@ -143,8 +148,8 @@ ReturnVal BVH::FindIntersection(const Ray& ray, BTNode<BBox>* node)
 
 	if (RayBBoxIntersection(ray, node->data))
 	{
-		ReturnVal retLeft = FindIntersection(ray, node -> left);
-		ReturnVal retRight = FindIntersection(ray, node -> right);
+		ReturnVal retLeft = FindIntersectionWithBVH(ray, node -> left);
+		ReturnVal retRight = FindIntersectionWithBVH(ray, node -> right);
 
 		if (retLeft.full && !retRight.full){
 			return retLeft;

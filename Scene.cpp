@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include "Image.h"
 #include <algorithm>
+#include <thread>
 #include <cmath>
 #include <thread>
 #include <time.h>
@@ -108,69 +109,72 @@ Color Scene::shading(Ray ray, ReturnVal ret, Material* mat)
 	return clampedColor;
 }
 
+void
+Scene::ThreadedRendering(int widthStart, int heightStart, int widthOffset, int heightOffset, Image& image, Camera* cam)
+{
+	Ray ray;
+	int widthEnd = widthStart + widthOffset;
+	int heightEnd = heightStart + heightOffset;
+	ReturnVal nearestRet;
+	Color bgColor = Color{ (unsigned char)backgroundColor(0),
+			(unsigned char)backgroundColor(1),
+			(unsigned char)backgroundColor(2) };
+
+	// For every pixel create a ray.
+	for (int i = widthStart; i < widthEnd; i++)
+	{
+		for (int j = heightStart; j < heightEnd; j++)
+		{
+			// Find intersection of given ray using BVH.
+			ray = cam->getPrimaryRay(i, j);
+			nearestRet = bvh->FindIntersection(ray);
+
+			// If any intersection happened, compute shading.
+			if (nearestRet.full)
+			{
+				image.setPixelValue(i, j, shading(ray, nearestRet,
+						materials[nearestRet.matIndex - 1]));
+			}
+				// Else paint with background color.
+			else
+			{
+				image.setPixelValue(i, j, bgColor);
+			}
+		}
+	}
+}
+
 void Scene::renderScene(void)
 {
 	// Create BVH.
 	bvh = new BVH();
-	bvh->DebugBVH();
 
 	// Save an image for all cameras.
 	for (int i = 0; i < cameras.size(); i++)
 	{
 		Camera* cam = cameras[i];
-		Ray ray;
-		int width = cam->imgPlane.nx;
-		int height = cam->imgPlane.ny;
+		int width, height;
+		width = cam->imgPlane.nx;
+		height = cam->imgPlane.ny;
 		Image image(width, height);
 
-		// For every pixel create a ray.
-		for (int i = 0; i < cam->imgPlane.nx; i++)
-		{
-			for (int j = 0; j < cam->imgPlane.ny; j++)
-			{
-				ray = cam->getPrimaryRay(i, j);
+		std::vector<std::thread> threads;
 
-				ReturnVal ret;
-				ReturnVal nearestRet;
-				float returnDistance = 0;
-				float nearestPoint = std::numeric_limits<float>::max();
-				int nearestObjectIndex = 0;
+		int offset_width = width / 2;
+		int offset_height = height / 2;
+		std::thread threadObj1(&Scene::ThreadedRendering, this, 0, 0, offset_width, offset_height, std::ref(image),
+				cam);
+		std::thread threadObj2(&Scene::ThreadedRendering, this, offset_width, 0, offset_width, offset_height,
+				std::ref(image), cam);
+		std::thread threadObj3(&Scene::ThreadedRendering, this, 0, offset_height, offset_width, offset_height,
+				std::ref(image), cam);
+		std::thread threadObj4(&Scene::ThreadedRendering, this, offset_width, offset_height, offset_width,
+				offset_height, std::ref(image), cam);
 
-				/*
-				// Check intersection of the ray with all objects.
-				for (int k = 0; k < objects.size(); k++)
-				{
-					ret = objects[k]->intersect(ray);
-					if (ret.full)
-					{
-						// Save the nearest intersected object.
-						returnDistance = (ret.point - ray.origin).norm();
-						if (returnDistance < nearestPoint)
-						{
-							nearestObjectIndex = k;
-							nearestPoint = returnDistance;
-							nearestRet = ret;
-						}
-					}
-				}*/
-
-				nearestRet = bvh->FindIntersection(ray, bvh->GetRoot());
-
-				// If any intersection happened, compute shading.
-				if (nearestRet.full)
-				{
-					image.setPixelValue(i, j, shading(ray, nearestRet,
-							materials[nearestRet.matIndex - 1]));
-				}
-				// Else paint with background color.
-				else
-				{
-					image.setPixelValue(i, j, Color{ (unsigned char)backgroundColor(0),
-							(unsigned char)backgroundColor(1),
-							(unsigned char)backgroundColor(2) });
-				}
-			}
-		}
+		threadObj1.join();
+		threadObj2.join();
+		threadObj3.join();
+		threadObj4.join();
 
 		// Save image.
 		image.saveImage(cam->imageName);

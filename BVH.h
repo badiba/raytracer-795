@@ -8,7 +8,8 @@
 class BVH
 {
 public:
-	ReturnVal FindIntersection(const Ray& ray, BTNode<BBox>* node);
+
+	ReturnVal FindIntersection(const Ray& ray);
 	BTNode<BBox>* GetRoot();
 	void DebugBVH();
 	BVH();
@@ -18,6 +19,7 @@ private:
 	BTNode<BBox> *root;
 	int bvhMaxRecursionDepth;
 
+	ReturnVal FindIntersectionWithBVH(const Ray& ray, BTNode<BBox>* node);
 	bool RayBBoxIntersection(const Ray& ray, BBox box);
 	void ConstructionHelper(int startIndex, int endIndex, int splitType, BTNode<BBox>*& node, int recursionDepth);
 	BBox ComputeBoundingBox(int startIndex, int endIndex);
