@@ -4,15 +4,24 @@
 #include "defs.h"
 #include "Eigen/Dense"
 
+enum MaterialType{Normal, Conductor, Dielectric};
+
 class Material
 {
 public:
 	int id;
 	int phongExp = 0;
+	bool isMirror;
+	MaterialType type;
+
 	Eigen::Vector3f ambientRef;
 	Eigen::Vector3f diffuseRef;
 	Eigen::Vector3f specularRef;
 	Eigen::Vector3f mirrorRef;
+
+	float refractionIndex;
+	float absorptionIndex;
+	Eigen::Vector3f absorptionCoefficient;
 
 	Material(void);
 

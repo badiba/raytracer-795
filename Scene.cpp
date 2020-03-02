@@ -350,12 +350,14 @@ Scene::Scene(const char* xmlPath)
 			str = materialElement->GetText();
 			sscanf(str, "%f %f %f", &materials[curr]->mirrorRef(0), &materials[curr]->mirrorRef(1),
 					&materials[curr]->mirrorRef(2));
+			materials[curr]->isMirror = true;
 		}
 		else
 		{
 			materials[curr]->mirrorRef(0) = 0.0;
 			materials[curr]->mirrorRef(1) = 0.0;
 			materials[curr]->mirrorRef(2) = 0.0;
+			materials[curr]->isMirror = false;
 		}
 
 		// Parse PhongExponent.
@@ -365,6 +367,55 @@ Scene::Scene(const char* xmlPath)
 			materialElement->QueryIntText(&materials[curr]->phongExp);
 		}
 
+		// Parse type, RefractionIndex, AbsorptionIndex, AbsorptionCoefficient.
+		const XMLAttribute *pAttrAssistant = const_cast<const XMLElement*>(pMaterial)->FindAttribute("type");
+		if (pAttrAssistant != nullptr)
+		{
+			if (std::strncmp(pAttrAssistant->Value(), "dielectric", 10)){
+				materials[curr]->type = Dielectric;
+			}
+			else if (std::strncmp(pAttrAssistant->Value(), "conductor", 9)){
+				materials[curr]->type = Conductor;
+			}
+			else{
+				materials[curr]->type = Normal;
+			}
+		}
+
+		materialElement = pMaterial->FirstChildElement("RefractionIndex");
+		if (materialElement != nullptr)
+		{
+			materialElement->QueryFloatText(&materials[curr]->refractionIndex);
+		}
+		else{
+			materials[curr]->refractionIndex = 0;
+		}
+
+		materialElement = pMaterial->FirstChildElement("AbsorptionIndex");
+		if (materialElement != nullptr)
+		{
+			materialElement->QueryFloatText(&materials[curr]->absorptionIndex);
+		}
+		else{
+			materials[curr]->absorptionIndex = 0;
+		}
+
+		materialElement = pMaterial->FirstChildElement("AbsorptionCoefficient");
+		if (materialElement != nullptr)
+		{
+			str = materialElement->GetText();
+			sscanf(str, "%f %f %f", &materials[curr]->absorptionCoefficient(0),
+					&materials[curr]->absorptionCoefficient(1),
+					&materials[curr]->absorptionCoefficient(2));
+		}
+		else
+		{
+			materials[curr]->absorptionCoefficient(0) = 0.0;
+			materials[curr]->absorptionCoefficient(1) = 0.0;
+			materials[curr]->absorptionCoefficient(2) = 0.0;
+		}
+
+		// Move onto the next element.
 		pMaterial = pMaterial->NextSiblingElement("Material");
 	}
 
