@@ -55,10 +55,6 @@ void BVH::ConstructionHelper(int startIndex, int endIndex, int splitType, BTNode
 	// Stopping condition.
 	if (startIndex == endIndex - 1 || recursionDepth >= bvhMaxRecursionDepth)
 	{
-		if (endIndex - startIndex > 5){
-			//std::cout << endIndex - startIndex << std::endl;
-		}
-
 		BBox box;
 		box.startIndex = startIndex;
 		box.endIndex = endIndex;
@@ -83,7 +79,8 @@ void BVH::ConstructionHelper(int startIndex, int endIndex, int splitType, BTNode
 	node = new BTNode<BBox>(box, nullptr, nullptr);
 
 	int swapIndex = startIndex;
-	float split = (box.minPoint[splitType] + box.maxPoint[splitType]) * 0.5f;
+	float split = FindMedian(startIndex, endIndex, splitType);
+
 	for (int i = startIndex; i < endIndex; i++)
 	{
 		float center = primitives[i]->GetCenter()[splitType];
@@ -106,10 +103,31 @@ ReturnVal BVH::FindIntersection(const Ray& ray)
 	return FindIntersectionWithBVH(ray, root);
 }
 
+float BVH::FindMedian(int startIndex, int endIndex, int coordinate)
+{
+	std::vector<float> centers;
+	for (int i = startIndex; i < endIndex; i++)
+	{
+		centers.push_back(primitives[i]->GetCenter()[coordinate]);
+	}
+
+	std::sort(centers.begin(), centers.end());
+
+	int length = endIndex - startIndex;
+	int medianIndex = length / 2;
+	if (length % 2 == 0){
+		return (centers[medianIndex-1] + centers[medianIndex]) * 0.5f;
+	}
+	else{
+		return centers[medianIndex];
+	}
+}
+
 ReturnVal BVH::FindIntersectionWithBVH(const Ray& ray, BTNode<BBox>* node)
 {
 	// Empty
-	if (!node){
+	if (!node)
+	{
 		ReturnVal ret;
 		ret.full = false;
 		return ret;
@@ -148,23 +166,28 @@ ReturnVal BVH::FindIntersectionWithBVH(const Ray& ray, BTNode<BBox>* node)
 
 	if (RayBBoxIntersection(ray, node->data))
 	{
-		ReturnVal retLeft = FindIntersectionWithBVH(ray, node -> left);
-		ReturnVal retRight = FindIntersectionWithBVH(ray, node -> right);
+		ReturnVal retLeft = FindIntersectionWithBVH(ray, node->left);
+		ReturnVal retRight = FindIntersectionWithBVH(ray, node->right);
 
-		if (retLeft.full && !retRight.full){
+		if (retLeft.full && !retRight.full)
+		{
 			return retLeft;
 		}
-		else if (!retLeft.full && retRight.full){
+		else if (!retLeft.full && retRight.full)
+		{
 			return retRight;
 		}
-		else if (retLeft.full && retRight.full){
+		else if (retLeft.full && retRight.full)
+		{
 			float leftDistance = (retLeft.point - ray.origin).norm();
 			float rightDistance = (retRight.point - ray.origin).norm();
 
-			if (leftDistance < rightDistance){
+			if (leftDistance < rightDistance)
+			{
 				return retLeft;
 			}
-			else{
+			else
+			{
 				return retRight;
 			}
 		}

@@ -28,6 +28,7 @@ private:
 	Eigen::Vector3f FindMaxPointOfTwo(Eigen::Vector3f v1, Eigen::Vector3f v2);
 	float FindMinOfTwo(float a, float b);
 	float FindMaxOfTwo(float a, float b);
+	float FindMedian(int startIndex, int endIndex, int coordinate);
 };
 
 #endif

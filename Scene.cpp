@@ -203,6 +203,7 @@ void Scene::renderScene(void)
 {
 	// Create BVH.
 	bvh = new BVH();
+	std::cout << "BVH construction complete." << std::endl;
 
 	// Save an image for all cameras.
 	for (int i = 0; i < cameras.size(); i++)
