@@ -4,14 +4,13 @@
 #include "defs.h"
 #include "Eigen/Dense"
 
-enum MaterialType{Normal, Conductor, Dielectric};
+enum MaterialType{Normal, Mirror, Conductor, Dielectric};
 
 class Material
 {
 public:
 	int id;
 	int phongExp = 0;
-	bool isMirror;
 	MaterialType type;
 
 	Eigen::Vector3f ambientRef;
