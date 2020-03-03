@@ -12,6 +12,14 @@
 #include "defs.h"
 #include "Eigen/Dense"
 #include "Image.h"
+#include "Material.h"
+
+typedef struct ShadingComponent
+{
+	Ray ray;
+	ReturnVal ret;
+	Material* mat;
+} ShadingComponent;
 
 // Forward declarations to avoid cyclic references
 class Camera;
@@ -56,15 +64,17 @@ private:
 
 	Eigen::Vector3f ambient(Material* mat);
 
-	Eigen::Vector3f shading(Ray ray, ReturnVal ret, Material* mat);
+	Eigen::Vector3f BasicShading(const Ray& ray, const ReturnVal& ret, Material* mat);
 
 	void ThreadedRendering(int widthStart, int heightStart, int widthOffset, int heightOffset, Image& image, Camera* cam);
 
-	Eigen::Vector3f Mirror(Ray ray, ReturnVal ret, Material* mat, int depth);
+	ShadingComponent MirrorReflectance(const Ray& ray, const ReturnVal& ret);
 
-	Color GeneralShading(Ray ray, ReturnVal ret, Material* mat);
+	Eigen::Vector3f RecursiveShading(const Ray& ray, const ReturnVal& ret, Material* mat, int depth);
 
-	bool IsMirror(Material* mat);
+	Color Shading(const Ray& ray, const ReturnVal& ret, Material* mat);
+
+	ShadingComponent DielectricRefraction(const Ray& ray, const ReturnVal& ret, Material* mat);
 };
 
 #endif

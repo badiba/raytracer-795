@@ -10,8 +10,6 @@
 #include <algorithm>
 #include <thread>
 #include <cmath>
-#include <thread>
-#include <time.h>
 
 using namespace Eigen;
 using namespace tinyxml2;
@@ -80,7 +78,7 @@ Vector3f Scene::ambient(Material* mat)
 	return ambientColor;
 }
 
-Vector3f Scene::Mirror(Ray ray, ReturnVal ret, Material* mat, int depth)
+ShadingComponent Scene::MirrorReflectance(const Ray& ray, const ReturnVal& ret)
 {
 	// Angle computations.
 	Vector3f wo = -ray.direction;
@@ -93,37 +91,64 @@ Vector3f Scene::Mirror(Ray ray, ReturnVal ret, Material* mat, int depth)
 	ReturnVal nearestRet = bvh->FindIntersection(reflectedRay);
 	int materialIndex = nearestRet.matIndex - 1;
 
-	// If ray intersected with object, keep doing shading computations.
-	if (nearestRet.full)
+	return ShadingComponent{ reflectedRay, nearestRet, materials[materialIndex] };
+}
+
+ShadingComponent Scene::DielectricRefraction(const Ray& ray, const ReturnVal& ret, Material* mat)
+{
+	// Compute refracted ray.
+	float cosTheta = -ray.direction.dot(ret.normal);
+	float nt = mat->refractionIndex;
+	float snell = 1.0f / nt;
+	Vector3f leftPart = (ray.direction + ret.normal * cosTheta) * snell;
+	float squareRootPart = 1 - pow(snell, 2) * (1 - pow(cosTheta, 2));
+	squareRootPart = sqrt(squareRootPart);
+	Vector3f tDirection = leftPart - (ret.normal * squareRootPart);
+	Ray tRay(ret.point - ret.normal * shadowRayEps, tDirection);
+
+	ReturnVal insideIntersection = bvh->FindIntersection(tRay);
+	Ray escapedRay(insideIntersection.point + insideIntersection.normal * shadowRayEps, ray.direction);
+
+	ReturnVal nearestRet = bvh->FindIntersection(escapedRay);
+	int materialIndex = nearestRet.matIndex - 1;
+
+	return ShadingComponent{escapedRay, nearestRet, materials[materialIndex]};
+}
+
+Vector3f Scene::RecursiveShading(const Ray& ray, const ReturnVal& ret, Material* mat, int depth)
+{
+	if (!ret.full)
 	{
-		// If depth reached maxDepth OR material is not a mirror, then compute basic shading and return.
-		if (!IsMirror(materials[materialIndex]) || depth == 1)
-		{
-			return shading(reflectedRay, nearestRet, materials[materialIndex]);
-		}
-		// Else compute basic shading and keep bouncing.
-		else
-		{
-			return shading(reflectedRay, nearestRet, materials[materialIndex]) + materials[materialIndex]->mirrorRef.cwiseProduct(
-					Mirror(reflectedRay, nearestRet, materials[materialIndex], depth - 1));
-		}
+		return Vector3f{ 0, 0, 0 };
 	}
-	// If there is no intersection, then background color is reflected (needs to be confirmed).
+
+	if (mat->type == Normal || depth == 1)
+	{
+		return BasicShading(ray, ret, mat);
+	}
+	else if (mat->type == Mirror)
+	{
+		ShadingComponent sc = MirrorReflectance(ray, ret);
+		Vector3f reflectedColor = RecursiveShading(sc.ray, sc.ret, sc.mat, depth - 1);
+		reflectedColor = mat->mirrorRef.cwiseProduct(reflectedColor);
+		return BasicShading(ray, ret, mat) + reflectedColor;
+	}
+	else if (mat->type == Dielectric)
+	{
+		ShadingComponent sc = DielectricRefraction(ray, ret, mat);
+		Vector3f refractedColor = RecursiveShading(sc.ray, sc.ret, sc.mat, depth - 1);
+		return BasicShading(ray, ret, mat) + refractedColor;
+	}
 	else
 	{
-		return Vector3f{0,0,0};
+		return Vector3f{ 255, 255, 255 };
 	}
 }
 
-Color Scene::GeneralShading(Ray ray, ReturnVal ret, Material* mat)
+Color Scene::Shading(const Ray& ray, const ReturnVal& ret, Material* mat)
 {
 	// Create a new rawColor (not bounded to 255).
-	Vector3f rawColor = shading(ray, ret, mat);
-
-	if (IsMirror(mat))
-	{
-		rawColor += mat->mirrorRef.cwiseProduct(Mirror(ray, ret, mat, maxRecursionDepth));
-	}
+	Vector3f rawColor = RecursiveShading(ray, ret, mat, maxRecursionDepth);
 
 	// Clamp and return.
 	rawColor = rawColor.cwiseMin(255);
@@ -134,7 +159,7 @@ Color Scene::GeneralShading(Ray ray, ReturnVal ret, Material* mat)
 	return clampedColor;
 }
 
-Vector3f Scene::shading(Ray ray, ReturnVal ret, Material* mat)
+Vector3f Scene::BasicShading(const Ray& ray, const ReturnVal& ret, Material* mat)
 {
 	// Create a new rawColor (not bounded to 255).
 	Vector3f rawColor(0, 0, 0);
@@ -156,12 +181,6 @@ Vector3f Scene::shading(Ray ray, ReturnVal ret, Material* mat)
 	}
 
 	return rawColor;
-}
-
-bool Scene::IsMirror(Material* mat)
-{
-	float mirrorThreshold = 0.001f;
-	return !(mat->mirrorRef[0] < mirrorThreshold && mat->mirrorRef[1] < mirrorThreshold && mat->mirrorRef[2] < mirrorThreshold);
 }
 
 void
@@ -187,7 +206,7 @@ Scene::ThreadedRendering(int widthStart, int heightStart, int widthOffset, int h
 			// If any intersection happened, compute shading.
 			if (nearestRet.full)
 			{
-				image.setPixelValue(i, j, GeneralShading(ray, nearestRet,
+				image.setPixelValue(i, j, Shading(ray, nearestRet,
 						materials[nearestRet.matIndex - 1]));
 			}
 				// Else paint with background color.
@@ -216,6 +235,7 @@ void Scene::renderScene(void)
 
 		std::vector<std::thread> threads;
 
+		// TODO: Change structure of this.
 		int offset_width = width / 2;
 		int offset_height = height / 2;
 		std::thread threadObj1(&Scene::ThreadedRendering, this, 0, 0, offset_width, offset_height, std::ref(image),
@@ -237,11 +257,12 @@ void Scene::renderScene(void)
 	}
 }
 
-void Scene::PutMarkAt(int x, int y, Image& image){
-	image.setPixelValue(x - 1, y, Color{255, 0, 0});
-	image.setPixelValue(x + 1, y, Color{255, 0, 0});
-	image.setPixelValue(x, y - 1, Color{255, 0, 0});
-	image.setPixelValue(x, y + 1, Color{255, 0, 0});
+void Scene::PutMarkAt(int x, int y, Image& image)
+{
+	image.setPixelValue(x - 1, y, Color{ 255, 0, 0 });
+	image.setPixelValue(x + 1, y, Color{ 255, 0, 0 });
+	image.setPixelValue(x, y - 1, Color{ 255, 0, 0 });
+	image.setPixelValue(x, y + 1, Color{ 255, 0, 0 });
 }
 
 // Parses XML file.
@@ -351,14 +372,12 @@ Scene::Scene(const char* xmlPath)
 			str = materialElement->GetText();
 			sscanf(str, "%f %f %f", &materials[curr]->mirrorRef(0), &materials[curr]->mirrorRef(1),
 					&materials[curr]->mirrorRef(2));
-			materials[curr]->isMirror = true;
 		}
 		else
 		{
 			materials[curr]->mirrorRef(0) = 0.0;
 			materials[curr]->mirrorRef(1) = 0.0;
 			materials[curr]->mirrorRef(2) = 0.0;
-			materials[curr]->isMirror = false;
 		}
 
 		// Parse PhongExponent.
@@ -369,18 +388,34 @@ Scene::Scene(const char* xmlPath)
 		}
 
 		// Parse type, RefractionIndex, AbsorptionIndex, AbsorptionCoefficient.
-		const XMLAttribute *pAttrAssistant = const_cast<const XMLElement*>(pMaterial)->FindAttribute("type");
-		if (pAttrAssistant != nullptr)
+		const XMLAttribute* attr = pMaterial->FirstAttribute();
+
+		materials[curr]->type = Normal;
+		while (attr != nullptr)
 		{
-			if (std::strncmp(pAttrAssistant->Value(), "dielectric", 10)){
+			if (std::strncmp(attr->Name(), "type", 4) != 0)
+			{
+				attr = attr->Next();
+				continue;
+			}
+
+			if (std::strncmp(attr->Value(), "dielectric", 10) == 0)
+			{
 				materials[curr]->type = Dielectric;
 			}
-			else if (std::strncmp(pAttrAssistant->Value(), "conductor", 9)){
+			else if (std::strncmp(attr->Value(), "conductor", 9) == 0)
+			{
 				materials[curr]->type = Conductor;
 			}
-			else{
+			else if (std::strncmp(attr->Value(), "mirror", 6) == 0)
+			{
+				materials[curr]->type = Mirror;
+			}
+			else
+			{
 				materials[curr]->type = Normal;
 			}
+			break;
 		}
 
 		materialElement = pMaterial->FirstChildElement("RefractionIndex");
@@ -388,7 +423,8 @@ Scene::Scene(const char* xmlPath)
 		{
 			materialElement->QueryFloatText(&materials[curr]->refractionIndex);
 		}
-		else{
+		else
+		{
 			materials[curr]->refractionIndex = 0;
 		}
 
@@ -397,7 +433,8 @@ Scene::Scene(const char* xmlPath)
 		{
 			materialElement->QueryFloatText(&materials[curr]->absorptionIndex);
 		}
-		else{
+		else
+		{
 			materials[curr]->absorptionIndex = 0;
 		}
 
