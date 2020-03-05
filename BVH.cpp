@@ -39,7 +39,7 @@ namespace BVHHelpers
 BVH::BVH()
 {
 	root = nullptr;
-	bvhMaxRecursionDepth = 10;
+	bvhMaxRecursionDepth = 30;
 
 	// Traverse all objects and fill primitives into a vector.
 	for (int i = 0; i < pScene->objects.size(); i++)
