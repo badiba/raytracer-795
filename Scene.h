@@ -69,7 +69,7 @@ private:
 
 	Eigen::Vector3f diffuse(ReturnVal ret, Material* mat, Ray ray, PointLight* light);
 
-	bool isDark(Eigen::Vector3f point, PointLight* light);
+	bool isDark(Eigen::Vector3f point, const ReturnVal& ret, PointLight* light);
 
 	Eigen::Vector3f specular(Ray ray, ReturnVal ret, Material* mat, PointLight* light);
 

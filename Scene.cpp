@@ -14,13 +14,13 @@
 using namespace Eigen;
 using namespace tinyxml2;
 
-bool Scene::isDark(Vector3f point, PointLight* light)
+bool Scene::isDark(Vector3f point, const ReturnVal& ret,  PointLight* light)
 {
 	// Find direction vector from intersection to light.
 	Vector3f direction = light->position - point;
 
 	// Create a new ray. Origin is moved with epsilon towards light to avoid self intersection.
-	Ray ray(point + direction * shadowRayEps, direction / direction.norm());
+	Ray ray(point + ret.normal * shadowRayEps, direction / direction.norm());
 
 	// Find nearest intersection of ray with all objects to see if there is a shadow.
 	ReturnVal nearestRet = bvh->FindIntersection(ray);
@@ -77,7 +77,7 @@ ShadingComponent Scene::MirrorReflectance(const Ray& ray, const ReturnVal& ret)
 	wr = wr / wr.norm();
 
 	// Check intersection of new ray.
-	Ray reflectedRay(ret.point + ret.normal * intTestEps, wr);
+	Ray reflectedRay(ret.point + ret.normal * shadowRayEps, wr);
 	ReturnVal nearestRet = bvh->FindIntersection(reflectedRay);
 	int materialIndex = nearestRet.matIndex - 1;
 
@@ -268,7 +268,7 @@ Vector3f Scene::BasicShading(const Ray& ray, const ReturnVal& ret, Material* mat
 	// Check shadows for diffuse and specular shading (for every light source).
 	for (int i = 0; i < lights.size(); i++)
 	{
-		if (isDark(ret.point, lights[i]))
+		if (isDark(ret.point, ret, lights[i]))
 		{
 			continue;
 		}
@@ -372,7 +372,7 @@ Scene::Scene(const char* xmlPath)
 	XMLElement* pElement;
 
 	maxRecursionDepth = 1;
-	shadowRayEps = 0.001;
+	shadowRayEps = 0.002;
 	intTestEps = 0.001;
 
 	eResult = xmlDoc.LoadFile(xmlPath);
