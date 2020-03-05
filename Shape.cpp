@@ -71,19 +71,25 @@ ReturnVal Sphere::intersect(const Ray& ray) const
     }
     float t1 = (-d.dot(o - c) + sqrt(discriminant)) / (d.dot(d));
     float t2 = (-d.dot(o - c) - sqrt(discriminant)) / (d.dot(d));
+
     Vector3f intersectionPoint;
-    if (t2 > t1 && t2 > 0)
-    {
-        intersectionPoint = ray.getPoint(t1);
+    if (t1 >= 0 && t2 < 0){
+		intersectionPoint = ray.getPoint(t1);
     }
-    else if (t1 > 0)
-    {
-        intersectionPoint = ray.getPoint(t2);
+    else if (t2 >= 0 && t1 < 0){
+		intersectionPoint = ray.getPoint(t2);
     }
-    else
-    {
-        ret.full = false;
-        return ret;
+    else if (t1 < 0 && t2 < 0){
+		ret.full = false;
+		return ret;
+    }
+    else{
+    	if (t1 < t2){
+			intersectionPoint = ray.getPoint(t1);
+    	}
+    	else{
+			intersectionPoint = ray.getPoint(t2);
+    	}
     }
 
     ret.point = intersectionPoint;
