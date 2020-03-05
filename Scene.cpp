@@ -21,25 +21,15 @@ bool Scene::isDark(Vector3f point, PointLight* light)
 
 	// Create a new ray. Origin is moved with epsilon towards light to avoid self intersection.
 	Ray ray(point + direction * shadowRayEps, direction / direction.norm());
-	ReturnVal ret;
 
-	// Check intersection of ray with all objects to see if there is a shadow.
-	for (int k = 0; k < objects.size(); k++)
-	{
-		// Get intersection information.
-		ret = objects[k]->intersect(ray);
+	// Find nearest intersection of ray with all objects to see if there is a shadow.
+	ReturnVal nearestRet = bvh->FindIntersection(ray);
 
-		// Check if intersected object is between point and light.
-		bool objectBlocksLight = (point - light->position).norm() > (point - ret.point).norm();
-
-		// If intersection happened and object is blocking the light then there is a shadow.
-		if (ret.full && objectBlocksLight)
-		{
-			return true;
-		}
+	if (nearestRet.full){
+		bool objectBlocksLight = (point - light->position).norm() > (point - nearestRet.point).norm();
+		return objectBlocksLight;
 	}
 
-	// No shadow, return false.
 	return false;
 }
 
@@ -87,32 +77,101 @@ ShadingComponent Scene::MirrorReflectance(const Ray& ray, const ReturnVal& ret)
 	wr = wr / wr.norm();
 
 	// Check intersection of new ray.
-	Ray reflectedRay(ret.point + ret.normal * shadowRayEps, wr);
+	Ray reflectedRay(ret.point + ret.normal * intTestEps, wr);
 	ReturnVal nearestRet = bvh->FindIntersection(reflectedRay);
 	int materialIndex = nearestRet.matIndex - 1;
 
 	return ShadingComponent{ reflectedRay, nearestRet, materials[materialIndex] };
 }
 
-ShadingComponent Scene::DielectricRefraction(const Ray& ray, const ReturnVal& ret, Material* mat)
+DielectricComponent Scene::DielectricRefraction(const Ray& ray, const ReturnVal& ret, Material* mat)
 {
 	// Compute refracted ray.
-	float cosTheta = -ray.direction.dot(ret.normal);
+	float dotProduct = ray.direction.dot(ret.normal);
 	float nt = mat->refractionIndex;
-	float snell = 1.0f / nt;
-	Vector3f leftPart = (ray.direction + ret.normal * cosTheta) * snell;
+
+	// -- Check entering or exiting.
+	float snell = 0;
+	Vector3f normal;
+	bool isEntering = false;
+	float n_t = 0;
+	float n_i = 0;
+
+	if (dotProduct < 0)
+	{
+		// entering.
+		snell = 1.0f / nt;
+		normal = ret.normal;
+		n_t = mat->refractionIndex;
+		n_i = 1;
+		isEntering = true;
+	}
+	else
+	{
+		// exiting.
+		snell = nt;
+		normal = -ret.normal;
+		n_t = 1;
+		n_i = mat->refractionIndex;
+		isEntering = false;
+	}
+
+	float cosTheta = -ray.direction.dot(normal);
+	Vector3f leftPart = (ray.direction + normal * cosTheta) * snell;
 	float squareRootPart = 1 - pow(snell, 2) * (1 - pow(cosTheta, 2));
+
+	bool isTir = false;
+	if (squareRootPart < 0){
+		isTir = true;
+	}
+
 	squareRootPart = sqrt(squareRootPart);
-	Vector3f tDirection = leftPart - (ret.normal * squareRootPart);
-	Ray tRay(ret.point - ret.normal * shadowRayEps, tDirection);
+	Vector3f tDirection = leftPart - (normal * squareRootPart);
+	tDirection = tDirection.normalized();
+	Ray tRay(ret.point - intTestEps * normal, tDirection);
 
-	ReturnVal insideIntersection = bvh->FindIntersection(tRay);
-	Ray escapedRay(insideIntersection.point + insideIntersection.normal * shadowRayEps, ray.direction);
-
-	ReturnVal nearestRet = bvh->FindIntersection(escapedRay);
+	// Return dielectric component.
+	ReturnVal nearestRet = bvh->FindIntersection(tRay);
 	int materialIndex = nearestRet.matIndex - 1;
 
-	return ShadingComponent{escapedRay, nearestRet, materials[materialIndex]};
+	// Fresnel
+	float fresnel = FresnelReflectance(n_t, n_i, ray, tRay, normal);
+	float beerDistance = (nearestRet.point - ret.point).norm();
+	float beerRed = BeerLaw(mat->absorptionCoefficient[0], beerDistance);
+
+	bool isOutside = false;
+	if (isEntering && mat->id != nearestRet.matIndex){
+		//std::cout << "not same" << std::endl;
+		isOutside = true;
+	}
+
+	return DielectricComponent{ tRay, nearestRet, materials[materialIndex], fresnel, beerRed, isEntering, isTir};
+}
+
+float Scene::FresnelReflectance(float n_t, float n_i, const Ray& iRay, const Ray& tRay, const Vector3f& normal)
+{
+	float cos_t = -tRay.direction.dot(normal);
+	float cos_i = -iRay.direction.dot(normal);
+
+	float rParallel = (n_t * cos_i - n_i * cos_t) / (n_t * cos_i + n_i * cos_t);
+	float rPerpendicular = (n_i * cos_i - n_t * cos_t) / (n_i * cos_i + n_t * cos_t);
+	return (0.5f) * (pow(rParallel, 2) + pow(rPerpendicular, 2));
+}
+
+float Scene::BeerLaw(float sigma_t, float distance){
+	return exp(-sigma_t * distance);
+}
+
+float Scene::ConductorFresnel(float n_t, float k_t, const Ray& ray, const Vector3f& normal){
+	float cos_t = -ray.direction.dot(normal);
+	float twoNtCost = 2 * n_t * cos_t;
+	float cosSquared = pow(cos_t, 2);
+	float nt_ktSquare = pow(n_t, 2) + pow(k_t, 2);
+
+	float rs = (nt_ktSquare - twoNtCost + cosSquared) / (nt_ktSquare + twoNtCost + cosSquared);
+	float rp = (nt_ktSquare * cosSquared - twoNtCost + 1) / (nt_ktSquare * cosSquared + twoNtCost + 1);
+
+	return (0.5f) * (rs + rp);
 }
 
 Vector3f Scene::RecursiveShading(const Ray& ray, const ReturnVal& ret, Material* mat, int depth)
@@ -122,7 +181,7 @@ Vector3f Scene::RecursiveShading(const Ray& ray, const ReturnVal& ret, Material*
 		return Vector3f{ 0, 0, 0 };
 	}
 
-	if (mat->type == Normal || depth == 1)
+	if (mat->type == Normal || depth <= 0)
 	{
 		return BasicShading(ray, ret, mat);
 	}
@@ -135,13 +194,52 @@ Vector3f Scene::RecursiveShading(const Ray& ray, const ReturnVal& ret, Material*
 	}
 	else if (mat->type == Dielectric)
 	{
-		ShadingComponent sc = DielectricRefraction(ray, ret, mat);
-		Vector3f refractedColor = RecursiveShading(sc.ray, sc.ret, sc.mat, depth - 1);
-		return BasicShading(ray, ret, mat) + refractedColor;
+		DielectricComponent dc = DielectricRefraction(ray, ret, mat);
+		if (dc.isEntering){
+			Vector3f insideColor = RecursiveShading(dc.ray, dc.ret, dc.mat, depth - 1);
+			insideColor = (1 - dc.fresnel) * dc.beer * insideColor;
+
+			ShadingComponent sc = MirrorReflectance(ray, ret);
+			Vector3f reflectedColor = RecursiveShading(sc.ray, sc.ret, sc.mat, depth - 1);
+			reflectedColor = dc.fresnel * reflectedColor;
+
+			// Nan Check.
+			if (insideColor[0] != insideColor[0]){
+				insideColor = Vector3f{0,0,0};
+			}
+			return BasicShading(ray, ret, mat) + insideColor + reflectedColor;
+		}
+		else{
+			if (dc.isTir){
+				ShadingComponent sc = MirrorReflectance(ray, ret);
+				Vector3f internalReflection = RecursiveShading(sc.ray, sc.ret, sc.mat, depth - 1);
+				internalReflection = dc.beer * internalReflection;
+				return internalReflection;
+			}
+			else{
+				Vector3f outsideColor = RecursiveShading(dc.ray, dc.ret, dc.mat, depth - 1);
+				outsideColor = (1 - dc.fresnel) * outsideColor;
+
+				ShadingComponent sc = MirrorReflectance(ray, ret);
+				Vector3f reflectedColor = RecursiveShading(sc.ray, sc.ret, sc.mat, depth - 1);
+				reflectedColor = dc.fresnel * dc.beer * reflectedColor;
+
+				// Nan Check.
+				if (outsideColor[0] != outsideColor[0]){
+					outsideColor = Vector3f{0,0,0};
+				}
+				return outsideColor + reflectedColor;
+			}
+		}
 	}
 	else
 	{
-		return Vector3f{ 255, 255, 255 };
+		float fresnel = ConductorFresnel(mat->refractionIndex, mat->absorptionIndex, ray, ret.normal);
+		ShadingComponent sc = MirrorReflectance(ray, ret);
+		Vector3f reflectedColor = RecursiveShading(sc.ray, sc.ret, sc.mat, depth - 1);
+		reflectedColor = fresnel * reflectedColor;
+		reflectedColor = mat->mirrorRef.cwiseProduct(reflectedColor);
+		return BasicShading(ray, ret, mat) + reflectedColor;
 	}
 }
 

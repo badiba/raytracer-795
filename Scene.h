@@ -21,6 +21,17 @@ typedef struct ShadingComponent
 	Material* mat;
 } ShadingComponent;
 
+typedef struct DielectricComponent
+{
+	Ray ray;
+	ReturnVal ret;
+	Material* mat;
+	float fresnel;
+	float beer;
+	bool isEntering;
+	bool isTir;
+} DielectricComponent;
+
 // Forward declarations to avoid cyclic references
 class Camera;
 
@@ -74,7 +85,13 @@ private:
 
 	Color Shading(const Ray& ray, const ReturnVal& ret, Material* mat);
 
-	ShadingComponent DielectricRefraction(const Ray& ray, const ReturnVal& ret, Material* mat);
+	DielectricComponent DielectricRefraction(const Ray& ray, const ReturnVal& ret, Material* mat);
+
+	float FresnelReflectance(float n_t, float n_i, const Ray& iRay, const Ray& tRay, const Eigen::Vector3f& normal);
+
+	float BeerLaw(float sigma_t, float distance);
+
+	float ConductorFresnel(float n_t, float k_t, const Ray& ray, const Eigen::Vector3f& normal);
 };
 
 #endif
