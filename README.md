@@ -175,7 +175,9 @@ I solved this issue by moving my rays along the surface normal, instead of movin
 
 ### 2.4. Conclusion
 
-I really liked the idea behind the `BVH`. I admire the people who came with this solution. When I got my first correct result with `BVH` included I was really happy. I wanted to see the actual bounding boxes to see I do everything correctly. Doing this also helped me to visualize it.
+I really liked the idea behind the `BVH`. I admire the people who came with this solution. When I got my first correct result with `BVH` included I was really happy. I wanted to see the actual bounding boxes to see I do everything correctly. Doing this also helped me to visualize it. Below, you can observe bounding box of two spheres at left (gray and cyan).
+
+![Sc](/assets/hw2-spheres.jpg)
 
 ![Sc](/assets/hw2-bounding-boxes.jpg)
 
