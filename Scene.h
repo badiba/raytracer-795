@@ -67,6 +67,8 @@ public:
 private:
 	void PutMarkAt(int x, int y, Image& image);
 
+	Eigen::Vector3f NanCheck(Eigen::Vector3f checkVector);
+
 	Eigen::Vector3f diffuse(ReturnVal ret, Material* mat, Ray ray, PointLight* light);
 
 	bool isDark(Eigen::Vector3f point, const ReturnVal& ret, PointLight* light);
@@ -77,7 +79,7 @@ private:
 
 	Eigen::Vector3f BasicShading(const Ray& ray, const ReturnVal& ret, Material* mat);
 
-	void ThreadedRendering(int widthStart, int heightStart, int widthOffset, int heightOffset, Image& image, Camera* cam);
+	void ThreadedRendering(int heightStart, int heightOffset, Image& image, Camera* cam);
 
 	ShadingComponent MirrorReflectance(const Ray& ray, const ReturnVal& ret);
 

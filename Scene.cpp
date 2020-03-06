@@ -15,7 +15,7 @@
 using namespace Eigen;
 using namespace tinyxml2;
 
-bool Scene::isDark(Vector3f point, const ReturnVal& ret,  PointLight* light)
+bool Scene::isDark(Vector3f point, const ReturnVal& ret, PointLight* light)
 {
 	// Find direction vector from intersection to light.
 	Vector3f direction = light->position - point;
@@ -26,7 +26,8 @@ bool Scene::isDark(Vector3f point, const ReturnVal& ret,  PointLight* light)
 	// Find nearest intersection of ray with all objects to see if there is a shadow.
 	ReturnVal nearestRet = bvh->FindIntersection(ray);
 
-	if (nearestRet.full){
+	if (nearestRet.full)
+	{
 		bool objectBlocksLight = (point - light->position).norm() > (point - nearestRet.point).norm();
 		return objectBlocksLight;
 	}
@@ -122,7 +123,8 @@ DielectricComponent Scene::DielectricRefraction(const Ray& ray, const ReturnVal&
 	float squareRootPart = 1 - pow(snell, 2) * (1 - pow(cosTheta, 2));
 
 	bool isTir = false;
-	if (squareRootPart < 0){
+	if (squareRootPart < 0)
+	{
 		isTir = true;
 	}
 
@@ -141,12 +143,13 @@ DielectricComponent Scene::DielectricRefraction(const Ray& ray, const ReturnVal&
 	float beerRed = BeerLaw(mat->absorptionCoefficient[0], beerDistance);
 
 	bool isOutside = false;
-	if (isEntering && mat->id != nearestRet.matIndex){
+	if (isEntering && mat->id != nearestRet.matIndex)
+	{
 		//std::cout << "not same" << std::endl;
 		isOutside = true;
 	}
 
-	return DielectricComponent{ tRay, nearestRet, materials[materialIndex], fresnel, beerRed, isEntering, isTir};
+	return DielectricComponent{ tRay, nearestRet, materials[materialIndex], fresnel, beerRed, isEntering, isTir };
 }
 
 float Scene::FresnelReflectance(float n_t, float n_i, const Ray& iRay, const Ray& tRay, const Vector3f& normal)
@@ -159,11 +162,13 @@ float Scene::FresnelReflectance(float n_t, float n_i, const Ray& iRay, const Ray
 	return (0.5f) * (pow(rParallel, 2) + pow(rPerpendicular, 2));
 }
 
-float Scene::BeerLaw(float sigma_t, float distance){
+float Scene::BeerLaw(float sigma_t, float distance)
+{
 	return exp(-sigma_t * distance);
 }
 
-float Scene::ConductorFresnel(float n_t, float k_t, const Ray& ray, const Vector3f& normal){
+float Scene::ConductorFresnel(float n_t, float k_t, const Ray& ray, const Vector3f& normal)
+{
 	float cos_t = -ray.direction.dot(normal);
 	float twoNtCost = 2 * n_t * cos_t;
 	float cosSquared = pow(cos_t, 2);
@@ -196,7 +201,8 @@ Vector3f Scene::RecursiveShading(const Ray& ray, const ReturnVal& ret, Material*
 	else if (mat->type == Dielectric)
 	{
 		DielectricComponent dc = DielectricRefraction(ray, ret, mat);
-		if (dc.isEntering){
+		if (dc.isEntering)
+		{
 			Vector3f insideColor = RecursiveShading(dc.ray, dc.ret, dc.mat, depth - 1);
 			insideColor = (1 - dc.fresnel) * dc.beer * insideColor;
 
@@ -205,19 +211,20 @@ Vector3f Scene::RecursiveShading(const Ray& ray, const ReturnVal& ret, Material*
 			reflectedColor = dc.fresnel * reflectedColor;
 
 			// Nan Check.
-			if (insideColor[0] != insideColor[0]){
-				insideColor = Vector3f{0,0,0};
-			}
+			insideColor = NanCheck(insideColor);
 			return BasicShading(ray, ret, mat) + insideColor + reflectedColor;
 		}
-		else{
-			if (dc.isTir){
+		else
+		{
+			if (dc.isTir)
+			{
 				ShadingComponent sc = MirrorReflectance(ray, ret);
 				Vector3f internalReflection = RecursiveShading(sc.ray, sc.ret, sc.mat, depth - 1);
 				internalReflection = dc.beer * internalReflection;
 				return internalReflection;
 			}
-			else{
+			else
+			{
 				Vector3f outsideColor = RecursiveShading(dc.ray, dc.ret, dc.mat, depth - 1);
 				outsideColor = (1 - dc.fresnel) * outsideColor;
 
@@ -226,9 +233,7 @@ Vector3f Scene::RecursiveShading(const Ray& ray, const ReturnVal& ret, Material*
 				reflectedColor = dc.fresnel * dc.beer * reflectedColor;
 
 				// Nan Check.
-				if (outsideColor[0] != outsideColor[0]){
-					outsideColor = Vector3f{0,0,0};
-				}
+				outsideColor = NanCheck(outsideColor);
 				return outsideColor + reflectedColor;
 			}
 		}
@@ -242,6 +247,15 @@ Vector3f Scene::RecursiveShading(const Ray& ray, const ReturnVal& ret, Material*
 		reflectedColor = mat->mirrorRef.cwiseProduct(reflectedColor);
 		return BasicShading(ray, ret, mat) + reflectedColor;
 	}
+}
+
+Vector3f Scene::NanCheck(Vector3f checkVector){
+	if (checkVector[0] != checkVector[0] || checkVector[1] != checkVector[1] || checkVector[2] != checkVector[2])
+	{
+		return Vector3f{ 0, 0, 0 };
+	}
+
+	return checkVector;
 }
 
 Color Scene::Shading(const Ray& ray, const ReturnVal& ret, Material* mat)
@@ -283,35 +297,33 @@ Vector3f Scene::BasicShading(const Ray& ray, const ReturnVal& ret, Material* mat
 }
 
 void
-Scene::ThreadedRendering(int widthStart, int heightStart, int widthOffset, int heightOffset, Image& image, Camera* cam)
+Scene::ThreadedRendering(int heightStart, int heightEnd, Image& image, Camera* cam)
 {
 	Ray ray;
-	int widthEnd = widthStart + widthOffset;
-	int heightEnd = heightStart + heightOffset;
 	ReturnVal nearestRet;
 	Color bgColor = Color{ (unsigned char)backgroundColor(0),
 			(unsigned char)backgroundColor(1),
 			(unsigned char)backgroundColor(2) };
 
 	// For every pixel create a ray.
-	for (int i = widthStart; i < widthEnd; i++)
+	for (int y = heightStart; y < heightEnd; y++)
 	{
-		for (int j = heightStart; j < heightEnd; j++)
+		for (int x = 0; x < image.width; x++)
 		{
 			// Find intersection of given ray using BVH.
-			ray = cam->getPrimaryRay(i, j);
+			ray = cam->getPrimaryRay(x, y);
 			nearestRet = bvh->FindIntersection(ray);
 
 			// If any intersection happened, compute shading.
 			if (nearestRet.full)
 			{
-				image.setPixelValue(i, j, Shading(ray, nearestRet,
+				image.setPixelValue(x, y, Shading(ray, nearestRet,
 						materials[nearestRet.matIndex - 1]));
 			}
 				// Else paint with background color.
 			else
 			{
-				image.setPixelValue(i, j, bgColor);
+				image.setPixelValue(x, y, bgColor);
 			}
 		}
 	}
@@ -332,24 +344,40 @@ void Scene::renderScene(void)
 		height = cam->imgPlane.ny;
 		Image image(width, height);
 
-		std::vector<std::thread> threads;
-
-		// TODO: Change structure of this.
-		int offset_width = width / 2;
-		int offset_height = height / 2;
-		std::thread threadObj1(&Scene::ThreadedRendering, this, 0, 0, offset_width, offset_height, std::ref(image),
-				cam);
-		std::thread threadObj2(&Scene::ThreadedRendering, this, offset_width, 0, offset_width, offset_height,
-				std::ref(image), cam);
-		std::thread threadObj3(&Scene::ThreadedRendering, this, 0, offset_height, offset_width, offset_height,
-				std::ref(image), cam);
-		std::thread threadObj4(&Scene::ThreadedRendering, this, offset_width, offset_height, offset_width,
-				offset_height, std::ref(image), cam);
+		int offset_height = height / 8;
+		int heightStart = 0;
+		int heightEnd = offset_height;
+		std::thread threadObj1(&Scene::ThreadedRendering, this, heightStart, heightEnd, std::ref(image), cam);
+		heightStart += offset_height;
+		heightEnd += offset_height;
+		std::thread threadObj2(&Scene::ThreadedRendering, this, heightStart, heightEnd, std::ref(image), cam);
+		heightStart += offset_height;
+		heightEnd += offset_height;
+		std::thread threadObj3(&Scene::ThreadedRendering, this, heightStart, heightEnd, std::ref(image), cam);
+		heightStart += offset_height;
+		heightEnd += offset_height;
+		std::thread threadObj4(&Scene::ThreadedRendering, this, heightStart, heightEnd, std::ref(image), cam);
+		heightStart += offset_height;
+		heightEnd += offset_height;
+		std::thread threadObj5(&Scene::ThreadedRendering, this, heightStart, heightEnd, std::ref(image), cam);
+		heightStart += offset_height;
+		heightEnd += offset_height;
+		std::thread threadObj6(&Scene::ThreadedRendering, this, heightStart, heightEnd, std::ref(image), cam);
+		heightStart += offset_height;
+		heightEnd += offset_height;
+		std::thread threadObj7(&Scene::ThreadedRendering, this, heightStart, heightEnd, std::ref(image), cam);
+		heightStart += offset_height;
+		heightEnd = height;
+		std::thread threadObj8(&Scene::ThreadedRendering, this, heightStart, heightEnd, std::ref(image), cam);
 
 		threadObj1.join();
 		threadObj2.join();
 		threadObj3.join();
 		threadObj4.join();
+		threadObj5.join();
+		threadObj6.join();
+		threadObj7.join();
+		threadObj8.join();
 
 		// Save image.
 		image.saveImage(cam->imageName);
@@ -420,12 +448,14 @@ Scene::Scene(const char* xmlPath)
 
 		// Parse Gaze
 		camElement = pCamera->FirstChildElement("Gaze");
-		if (camElement){
+		if (camElement)
+		{
 			str = camElement->GetText();
 			sscanf(str, "%f %f %f", &gaze(0), &gaze(1), &gaze(2));
 		}
 		camElement = pCamera->FirstChildElement("GazePoint");
-		if (camElement){
+		if (camElement)
+		{
 			str = camElement->GetText();
 			Vector3f gazePoint;
 			sscanf(str, "%f %f %f", &gazePoint[0], &gazePoint[1], &gazePoint[2]);
@@ -446,16 +476,18 @@ Scene::Scene(const char* xmlPath)
 
 		// Parse near plane.
 		camElement = pCamera->FirstChildElement("NearPlane");
-		if (camElement){
+		if (camElement)
+		{
 			str = camElement->GetText();
 			sscanf(str, "%f %f %f %f", &imgPlane.left, &imgPlane.right, &imgPlane.bottom, &imgPlane.top);
 		}
 		camElement = pCamera->FirstChildElement("FovY");
-		if (camElement){
+		if (camElement)
+		{
 			float fov;
 			eResult = camElement->QueryFloatText(&fov);
 			fov = fov * 0.5f;
-			float aspectRatio = (float) imgPlane.nx / (float) imgPlane.ny;
+			float aspectRatio = (float)imgPlane.nx / (float)imgPlane.ny;
 			float y = tan(fov) * imgPlane.distance;
 			float x = aspectRatio * y;
 
@@ -703,13 +735,28 @@ Scene::Scene(const char* xmlPath)
 			isPly = true;
 			break;
 		}
-		if (isPly){
-			happly::PLYData plyIn(attr->Value());
+		if (isPly)
+		{
+			// Get path of ply file.
+			std::string plyPath = "";
+			int lastIndex = 0;
+			for (int i = 0; xmlPath[i] != '\0'; i++){
+				if (xmlPath[i] == '/'){
+					lastIndex = i;
+				}
+			}
+			for (int i = 0; i <= lastIndex; i++){
+				plyPath += xmlPath[i];
+			}
+			plyPath += attr->Value();
+
+			happly::PLYData plyIn(plyPath);
 
 			std::vector<std::vector<size_t>> fInd = plyIn.getFaceIndices<size_t>();
 			int fIndSize = fInd.size();
 			int vertexCount = vertices.size() + 1;
-			for (int i = 0; i < fIndSize; i++){
+			for (int i = 0; i < fIndSize; i++)
+			{
 				p1Index = fInd[i][0] + vertexCount;
 				p2Index = fInd[i][1] + vertexCount;
 				p3Index = fInd[i][2] + vertexCount;
@@ -719,7 +766,8 @@ Scene::Scene(const char* xmlPath)
 			std::vector<std::array<double, 3>> vPos = plyIn.getVertexPositions();
 			int vPosSize = vPos.size();
 			Vector3f vertex;
-			for (int i = 0; i < vPosSize; i++){
+			for (int i = 0; i < vPosSize; i++)
+			{
 				vertex[0] = vPos[i][0];
 				vertex[1] = vPos[i][1];
 				vertex[2] = vPos[i][2];
