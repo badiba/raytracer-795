@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <thread>
 #include <cmath>
+#include "happly.h"
 
 using namespace Eigen;
 using namespace tinyxml2;
@@ -416,15 +417,24 @@ Scene::Scene(const char* xmlPath)
 		camElement = pCamera->FirstChildElement("Position");
 		str = camElement->GetText();
 		sscanf(str, "%f %f %f", &pos(0), &pos(1), &pos(2));
+
+		// Parse Gaze
 		camElement = pCamera->FirstChildElement("Gaze");
-		str = camElement->GetText();
-		sscanf(str, "%f %f %f", &gaze(0), &gaze(1), &gaze(2));
+		if (camElement){
+			str = camElement->GetText();
+			sscanf(str, "%f %f %f", &gaze(0), &gaze(1), &gaze(2));
+		}
+		camElement = pCamera->FirstChildElement("GazePoint");
+		if (camElement){
+			str = camElement->GetText();
+			Vector3f gazePoint;
+			sscanf(str, "%f %f %f", &gazePoint[0], &gazePoint[1], &gazePoint[2]);
+			gaze = gazePoint - pos;
+		}
+
 		camElement = pCamera->FirstChildElement("Up");
 		str = camElement->GetText();
 		sscanf(str, "%f %f %f", &up(0), &up(1), &up(2));
-		camElement = pCamera->FirstChildElement("NearPlane");
-		str = camElement->GetText();
-		sscanf(str, "%f %f %f %f", &imgPlane.left, &imgPlane.right, &imgPlane.bottom, &imgPlane.top);
 		camElement = pCamera->FirstChildElement("NearDistance");
 		eResult = camElement->QueryFloatText(&imgPlane.distance);
 		camElement = pCamera->FirstChildElement("ImageResolution");
@@ -433,6 +443,27 @@ Scene::Scene(const char* xmlPath)
 		camElement = pCamera->FirstChildElement("ImageName");
 		str = camElement->GetText();
 		strcpy(imageName, str);
+
+		// Parse near plane.
+		camElement = pCamera->FirstChildElement("NearPlane");
+		if (camElement){
+			str = camElement->GetText();
+			sscanf(str, "%f %f %f %f", &imgPlane.left, &imgPlane.right, &imgPlane.bottom, &imgPlane.top);
+		}
+		camElement = pCamera->FirstChildElement("FovY");
+		if (camElement){
+			float fov;
+			eResult = camElement->QueryFloatText(&fov);
+			fov = fov * 0.5f;
+			float aspectRatio = (float) imgPlane.nx / (float) imgPlane.ny;
+			float y = tan(fov) * imgPlane.distance;
+			float x = aspectRatio * y;
+
+			imgPlane.top = y;
+			imgPlane.bottom = -y;
+			imgPlane.left = -x;
+			imgPlane.right = x;
+		}
 
 		cameras.push_back(new Camera(id, imageName, pos, gaze, up, imgPlane));
 
@@ -657,6 +688,51 @@ Scene::Scene(const char* xmlPath)
 		objElement = pObject->FirstChildElement("Material");
 		eResult = objElement->QueryIntText(&matIndex);
 		objElement = pObject->FirstChildElement("Faces");
+
+		// Parse PLY File ---------> BEGIN.
+		bool isPly = false;
+		const XMLAttribute* attr = objElement->FirstAttribute();
+		while (attr != nullptr)
+		{
+			if (std::strncmp(attr->Name(), "plyFile", 7) != 0)
+			{
+				attr = attr->Next();
+				continue;
+			}
+
+			isPly = true;
+			break;
+		}
+		if (isPly){
+			happly::PLYData plyIn(attr->Value());
+
+			std::vector<std::vector<size_t>> fInd = plyIn.getFaceIndices<size_t>();
+			int fIndSize = fInd.size();
+			int vertexCount = vertices.size() + 1;
+			for (int i = 0; i < fIndSize; i++){
+				p1Index = fInd[i][0] + vertexCount;
+				p2Index = fInd[i][1] + vertexCount;
+				p3Index = fInd[i][2] + vertexCount;
+				faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index)));
+			}
+
+			std::vector<std::array<double, 3>> vPos = plyIn.getVertexPositions();
+			int vPosSize = vPos.size();
+			Vector3f vertex;
+			for (int i = 0; i < vPosSize; i++){
+				vertex[0] = vPos[i][0];
+				vertex[1] = vPos[i][1];
+				vertex[2] = vPos[i][2];
+				vertices.push_back(vertex);
+			}
+
+			objects.push_back(new Mesh(id, matIndex, faces));
+
+			pObject = pObject->NextSiblingElement("Mesh");
+			continue;
+		}
+		// Parse PLY File ---------> COMPLETED.
+
 		objElement->QueryIntAttribute("vertexOffset", &vertexOffset);
 		str = objElement->GetText();
 		while (str[cursor] == ' ' || str[cursor] == '\t' || str[cursor] == '\n')
