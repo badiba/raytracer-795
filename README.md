@@ -147,7 +147,7 @@ Here are some images rendered with the current version of the Ray Tracer. Since 
 
 > Figure 2.2.5: Other Dragon. No BVH: Unknown BVH: 0m6.136s
 
-
+No BVH time for Other Dragon is unknown because it takes too much time to render. I cancelled the rendering after 45 minutes or so.
 
 ### 2.3. Bugs and fixes
 
