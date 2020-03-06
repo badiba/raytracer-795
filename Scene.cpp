@@ -140,16 +140,13 @@ DielectricComponent Scene::DielectricRefraction(const Ray& ray, const ReturnVal&
 	// Fresnel
 	float fresnel = FresnelReflectance(n_t, n_i, ray, tRay, normal);
 	float beerDistance = (nearestRet.point - ret.point).norm();
+
 	float beerRed = BeerLaw(mat->absorptionCoefficient[0], beerDistance);
+	float beerGreen = BeerLaw(mat->absorptionCoefficient[1], beerDistance);
+	float beerBlue = BeerLaw(mat->absorptionCoefficient[2], beerDistance);
+	Vector3f beer = {beerRed, beerGreen, beerBlue};
 
-	bool isOutside = false;
-	if (isEntering && mat->id != nearestRet.matIndex)
-	{
-		//std::cout << "not same" << std::endl;
-		isOutside = true;
-	}
-
-	return DielectricComponent{ tRay, nearestRet, materials[materialIndex], fresnel, beerRed, isEntering, isTir };
+	return DielectricComponent{ tRay, nearestRet, materials[materialIndex], fresnel, beer, isEntering, isTir };
 }
 
 float Scene::FresnelReflectance(float n_t, float n_i, const Ray& iRay, const Ray& tRay, const Vector3f& normal)
@@ -204,14 +201,15 @@ Vector3f Scene::RecursiveShading(const Ray& ray, const ReturnVal& ret, Material*
 		if (dc.isEntering)
 		{
 			Vector3f insideColor = RecursiveShading(dc.ray, dc.ret, dc.mat, depth - 1);
-			insideColor = (1 - dc.fresnel) * dc.beer * insideColor;
+			insideColor = (1 - dc.fresnel) * insideColor;
+			insideColor = dc.beer.cwiseProduct(insideColor);
 
 			ShadingComponent sc = MirrorReflectance(ray, ret);
 			Vector3f reflectedColor = RecursiveShading(sc.ray, sc.ret, sc.mat, depth - 1);
 			reflectedColor = dc.fresnel * reflectedColor;
 
-			// Nan Check.
 			insideColor = NanCheck(insideColor);
+			reflectedColor = NanCheck(reflectedColor);
 			return BasicShading(ray, ret, mat) + insideColor + reflectedColor;
 		}
 		else
@@ -220,7 +218,9 @@ Vector3f Scene::RecursiveShading(const Ray& ray, const ReturnVal& ret, Material*
 			{
 				ShadingComponent sc = MirrorReflectance(ray, ret);
 				Vector3f internalReflection = RecursiveShading(sc.ray, sc.ret, sc.mat, depth - 1);
-				internalReflection = dc.beer * internalReflection;
+				internalReflection = dc.beer.cwiseProduct(internalReflection);
+
+				internalReflection = NanCheck(internalReflection);
 				return internalReflection;
 			}
 			else
@@ -230,10 +230,11 @@ Vector3f Scene::RecursiveShading(const Ray& ray, const ReturnVal& ret, Material*
 
 				ShadingComponent sc = MirrorReflectance(ray, ret);
 				Vector3f reflectedColor = RecursiveShading(sc.ray, sc.ret, sc.mat, depth - 1);
-				reflectedColor = dc.fresnel * dc.beer * reflectedColor;
+				reflectedColor = dc.fresnel * reflectedColor;
+				reflectedColor = dc.beer.cwiseProduct(reflectedColor);
 
-				// Nan Check.
 				outsideColor = NanCheck(outsideColor);
+				reflectedColor = NanCheck(reflectedColor);
 				return outsideColor + reflectedColor;
 			}
 		}

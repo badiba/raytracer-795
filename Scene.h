@@ -27,7 +27,7 @@ typedef struct DielectricComponent
 	ReturnVal ret;
 	Material* mat;
 	float fresnel;
-	float beer;
+	Eigen::Vector3f beer;
 	bool isEntering;
 	bool isTir;
 } DielectricComponent;
