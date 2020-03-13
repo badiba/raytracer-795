@@ -487,7 +487,7 @@ Scene::Scene(const char* xmlPath)
 		{
 			float fov;
 			eResult = camElement->QueryFloatText(&fov);
-			fov = fov * 0.5f;
+			fov = (fov * 0.5f) * (M_PI / 180.0f);
 			float aspectRatio = (float)imgPlane.nx / (float)imgPlane.ny;
 			float y = tan(fov) * imgPlane.distance;
 			float x = aspectRatio * y;
