@@ -383,6 +383,8 @@ void Scene::renderScene(void)
 		// Save image.
 		image.saveImage(cam->imageName);
 	}
+
+	std::cout << "Scalings size: " << scalings.size() << std::endl;
 }
 
 void Scene::PutMarkAt(int x, int y, Image& image)
@@ -617,6 +619,55 @@ Scene::Scene(const char* xmlPath)
 
 		// Move onto the next element.
 		pMaterial = pMaterial->NextSiblingElement("Material");
+	}
+
+	// Parse transformations.
+    pElement = pRoot->FirstChildElement("Transformations");
+	if (pElement != nullptr){
+	    // Parse translations.
+        XMLElement* pTranslation = pElement->FirstChildElement("Translation");
+        while(pTranslation != nullptr){
+            translations.push_back(new Transformation());
+
+            int curr = translations.size() - 1;
+            eResult = pTranslation->QueryIntAttribute("id", &translations[curr]->id);
+
+            str = pTranslation->GetText();
+            sscanf(str, "%f %f %f", &translations[curr]->common[0], &translations[curr]->common[1],
+                   &translations[curr]->common[2]);
+
+            pTranslation = pTranslation->NextSiblingElement("Translation");
+        }
+
+        // Parse scalings.
+        XMLElement* pScaling = pElement->FirstChildElement("Scaling");
+        while(pScaling != nullptr){
+            scalings.push_back(new Transformation());
+
+            int curr = scalings.size() - 1;
+            eResult = pScaling->QueryIntAttribute("id", &scalings[curr]->id);
+
+            str = pScaling->GetText();
+            sscanf(str, "%f %f %f", &scalings[curr]->common[0], &scalings[curr]->common[1],
+                   &scalings[curr]->common[2]);
+
+            pScaling = pScaling->NextSiblingElement("Scaling");
+        }
+
+        // Parse rotations.
+        XMLElement* pRotation = pElement->FirstChildElement("Rotation");
+        while(pRotation != nullptr){
+            rotations.push_back(new Transformation());
+
+            int curr = rotations.size() - 1;
+            eResult = pRotation->QueryIntAttribute("id", &rotations[curr]->id);
+
+            str = pRotation->GetText();
+            sscanf(str, "%f %f %f", &rotations[curr]->common[0], &rotations[curr]->common[1],
+                   &rotations[curr]->common[2]);
+
+            pRotation = pRotation->NextSiblingElement("Rotation");
+        }
 	}
 
 	// Parse vertex data
