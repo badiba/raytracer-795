@@ -1,14 +1,19 @@
-//
-// Created by bahadir on 24.03.2020.
-//
+#ifndef _TRANSFORMATION_H_
+#define _TRANSFORMATION_H_
+#include "Eigen/Dense"
 
-#ifndef INC_477RAYTRACER_TRANSFORMATION_H
-#define INC_477RAYTRACER_TRANSFORMATION_H
+enum TransformationType{None, Translation, Scaling, Rotation};
 
+class Transformation{
+public:
+    int id;
+    TransformationType type;
 
-class Transformation {
+    float angle;
+    Eigen::Vector3f common;
 
+    Transformation(void);
 };
 
 
-#endif //INC_477RAYTRACER_TRANSFORMATION_H
+#endif
