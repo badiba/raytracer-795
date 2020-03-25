@@ -13,6 +13,7 @@
 #include "Eigen/Dense"
 #include "Image.h"
 #include "Material.h"
+#include "Transformation.h"
 
 typedef struct ShadingComponent
 {
@@ -55,6 +56,9 @@ public:
 	std::vector<Camera*> cameras;
 	std::vector<PointLight*> lights;
 	std::vector<Material*> materials;
+	std::vector<Transformation*> translations;
+    std::vector<Transformation*> scalings;
+    std::vector<Transformation*> rotations;
 	std::vector<Eigen::Vector3f> vertices;
 	std::vector<Shape*> objects;
 
