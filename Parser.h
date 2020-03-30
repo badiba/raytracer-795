@@ -280,7 +280,7 @@ namespace Parser{
                 eResult = pRotation->QueryIntAttribute("id", &rotations[curr]->id);
 
                 str = pRotation->GetText();
-                sscanf(str, "%f %f %f", &rotations[curr]->common[0], &rotations[curr]->common[1],
+                sscanf(str, "%f %f %f %f", &rotations[curr]->angle, &rotations[curr]->common[0], &rotations[curr]->common[1],
                        &rotations[curr]->common[2]);
 
                 pRotation = pRotation->NextSiblingElement("Rotation");
@@ -329,6 +329,31 @@ namespace Parser{
         }
     }
 
+    void ParseObjectTransformations(const char* str, std::vector<Transformation*> &transformations){
+        int transformationIndex = 0;
+        int cursor = 0;
+
+        while(str[cursor] != '\0'){
+            if (str[cursor] == 't'){
+                transformationIndex = atoi(str + cursor + 1);
+                transformations.push_back(new Transformation(transformationIndex, TransformationType::Translation));
+            }
+            else if (str[cursor] == 's'){
+                transformationIndex = atoi(str + cursor + 1);
+                transformations.push_back(new Transformation(transformationIndex, TransformationType::Scaling));
+            }
+            else if (str[cursor] == 'r'){
+                transformationIndex = atoi(str + cursor + 1);
+                transformations.push_back(new Transformation(transformationIndex, TransformationType::Rotation));
+            }
+
+            cursor++;
+            while(str[cursor] != 's' && str[cursor] != 't' && str[cursor] != 'r' && str[cursor] != '\0'){
+                cursor++;
+            }
+        }
+    }
+
     void ParseObjects(XMLNode* pRoot, const char* xmlPath, std::vector<Shape*> &objects, std::vector<Vector3f> &vertices){
         const char* str;
         XMLError eResult;
@@ -336,6 +361,7 @@ namespace Parser{
         XMLElement* pElement = pRoot->FirstChildElement("Objects");
 
         // Parse spheres
+        std::cout << "- Parsing spheres." << std::endl;
         XMLElement* pObject = pElement->FirstChildElement("Sphere");
         XMLElement* objElement;
         while (pObject != nullptr)
@@ -344,21 +370,31 @@ namespace Parser{
             int matIndex;
             int cIndex;
             float R;
+            std::vector<Transformation*> transformations;
 
             eResult = pObject->QueryIntAttribute("id", &id);
             objElement = pObject->FirstChildElement("Material");
             eResult = objElement->QueryIntText(&matIndex);
+
+            // Parse object transformations.
+            objElement = pObject->FirstChildElement("Transformations");
+            if (objElement != nullptr){
+                str = objElement->GetText();
+                ParseObjectTransformations(str, transformations);
+            }
+
             objElement = pObject->FirstChildElement("Center");
             eResult = objElement->QueryIntText(&cIndex);
             objElement = pObject->FirstChildElement("Radius");
             eResult = objElement->QueryFloatText(&R);
 
-            objects.push_back(new Sphere(id, matIndex, cIndex, R));
+            objects.push_back(new Sphere(id, matIndex, cIndex, R, transformations));
 
             pObject = pObject->NextSiblingElement("Sphere");
         }
 
         // Parse triangles
+        std::cout << "- Parsing triangles." << std::endl;
         pObject = pElement->FirstChildElement("Triangle");
         while (pObject != nullptr)
         {
@@ -367,35 +403,50 @@ namespace Parser{
             int p1Index;
             int p2Index;
             int p3Index;
+            std::vector<Transformation*> transformations;
 
             eResult = pObject->QueryIntAttribute("id", &id);
             objElement = pObject->FirstChildElement("Material");
             eResult = objElement->QueryIntText(&matIndex);
+
+            // Parse object transformations.
+            objElement = pObject->FirstChildElement("Transformations");
+            if (objElement != nullptr){
+                str = objElement->GetText();
+                ParseObjectTransformations(str, transformations);
+            }
+
             objElement = pObject->FirstChildElement("Indices");
             str = objElement->GetText();
             sscanf(str, "%d %d %d", &p1Index, &p2Index, &p3Index);
 
-            objects.push_back(new Triangle(id, matIndex, p1Index, p2Index, p3Index));
+            objects.push_back(new Triangle(id, matIndex, p1Index, p2Index, p3Index, transformations));
 
             pObject = pObject->NextSiblingElement("Triangle");
         }
 
         // Parse meshes
+        std::cout << "- Parsing meshes." << std::endl;
         pObject = pElement->FirstChildElement("Mesh");
         while (pObject != nullptr)
         {
-            int id;
-            int matIndex;
-            int p1Index;
-            int p2Index;
-            int p3Index;
-            int cursor = 0;
-            int vertexOffset = 0;
+            int id, matIndex, p1Index, p2Index, p3Index, cursor, vertexOffset;
+            cursor = 0;
+            vertexOffset = 0;
             std::vector<Triangle> faces;
+            std::vector<Transformation*> transformations;
 
             eResult = pObject->QueryIntAttribute("id", &id);
             objElement = pObject->FirstChildElement("Material");
             eResult = objElement->QueryIntText(&matIndex);
+
+            // Parse object transformations.
+            objElement = pObject->FirstChildElement("Transformations");
+            if (objElement != nullptr){
+                str = objElement->GetText();
+                ParseObjectTransformations(str, transformations);
+            }
+
             objElement = pObject->FirstChildElement("Faces");
 
             // Parse PLY File ---------> BEGIN.
@@ -451,13 +502,14 @@ namespace Parser{
                     vertices.push_back(vertex);
                 }
 
-                objects.push_back(new Mesh(id, matIndex, faces));
+                objects.push_back(new Mesh(id, matIndex, faces, transformations));
 
                 pObject = pObject->NextSiblingElement("Mesh");
                 continue;
             }
             // Parse PLY File ---------> COMPLETED.
 
+            cursor = 0;
             objElement->QueryIntAttribute("vertexOffset", &vertexOffset);
             str = objElement->GetText();
             while (str[cursor] == ' ' || str[cursor] == '\t' || str[cursor] == '\n')
@@ -492,7 +544,7 @@ namespace Parser{
                 faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index)));
             }
 
-            objects.push_back(new Mesh(id, matIndex, faces));
+            objects.push_back(new Mesh(id, matIndex, faces, transformations));
 
             pObject = pObject->NextSiblingElement("Mesh");
         }

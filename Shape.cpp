@@ -3,35 +3,9 @@
 #include <cstdio>
 #include "math.h"
 #include <limits>
+#include "Helper.h"
 
 using namespace Eigen;
-
-namespace ShapeHelpers
-{
-	float FindMinOfThree(float a, float b, float c)
-	{
-		if (a <= b && a <= c){
-			return a;
-		}
-		else if (b <= a && b <= c){
-			return b;
-		}
-
-		return c;
-	}
-
-	float FindMaxOfThree(float a, float b, float c)
-	{
-		if (a >= b && a >= c){
-			return a;
-		}
-		else if (b >= a && b >= c){
-			return b;
-		}
-
-		return c;
-	}
-}
 
 Shape::Shape(void)
 {
@@ -44,6 +18,16 @@ Shape::Shape(int id, int matIndex)
 
 Sphere::Sphere(void)
 {
+}
+
+Sphere::Sphere(int id, int matIndex, int cIndex, float R, const std::vector<Transformation*>& transformations)
+        : Shape(id, matIndex)
+{
+    this->id = id;
+    this->matIndex = matIndex;
+    this->cIndex = cIndex;
+    this->R = R;
+    this->objTransformations = transformations;
 }
 
 Sphere::Sphere(int id, int matIndex, int cIndex, float R)
@@ -101,7 +85,7 @@ ReturnVal Sphere::intersect(const Ray& ray) const
 
 void Sphere::FillPrimitives(std::vector<Shape*> &primitives) const
 {
-	primitives.push_back(new Sphere(id, matIndex, cIndex, R));
+	primitives.push_back(new Sphere(id, matIndex, cIndex, R, objTransformations));
 }
 
 BBox Sphere::GetBoundingBox() const
@@ -122,6 +106,17 @@ Triangle::Triangle(void)
 {
 }
 
+Triangle::Triangle(int id, int matIndex, int p1Index, int p2Index, int p3Index, const std::vector<Transformation*>& transformations)
+        : Shape(id, matIndex)
+{
+    this->id = id;
+    this->matIndex = matIndex;
+    this->p1Index = p1Index;
+    this->p2Index = p2Index;
+    this->p3Index = p3Index;
+    this->objTransformations = transformations;
+}
+
 Triangle::Triangle(int id, int matIndex, int p1Index, int p2Index, int p3Index)
         : Shape(id, matIndex)
 {
@@ -130,6 +125,18 @@ Triangle::Triangle(int id, int matIndex, int p1Index, int p2Index, int p3Index)
     this->p1Index = p1Index;
     this->p2Index = p2Index;
     this->p3Index = p3Index;
+}
+
+int Triangle::GetIndexOne() {
+    return p1Index;
+}
+
+int Triangle::GetIndexTwo() {
+    return p2Index;
+}
+
+int Triangle::GetIndexThree() {
+    return p3Index;
 }
 
 ReturnVal Triangle::intersect(const Ray& ray) const
@@ -179,12 +186,12 @@ BBox Triangle::GetBoundingBox() const
 	c = pScene->vertices[p3Index - 1];
 
 	Vector3f minPoint = {ShapeHelpers::FindMinOfThree(a[0], b[0], c[0]),
-			ShapeHelpers::FindMinOfThree(a[1], b[1], c[1]),
-			ShapeHelpers::FindMinOfThree(a[2], b[2], c[2])};
+                         ShapeHelpers::FindMinOfThree(a[1], b[1], c[1]),
+                         ShapeHelpers::FindMinOfThree(a[2], b[2], c[2])};
 
 	Vector3f maxPoint = {ShapeHelpers::FindMaxOfThree(a[0], b[0], c[0]),
-			ShapeHelpers::FindMaxOfThree(a[1], b[1], c[1]),
-			ShapeHelpers::FindMaxOfThree(a[2], b[2], c[2])};
+                         ShapeHelpers::FindMaxOfThree(a[1], b[1], c[1]),
+                         ShapeHelpers::FindMaxOfThree(a[2], b[2], c[2])};
 
 	return BBox{minPoint, maxPoint};
 }
@@ -205,12 +212,13 @@ Mesh::Mesh()
 {
 }
 
-Mesh::Mesh(int id, int matIndex, const std::vector<Triangle>& faces)
+Mesh::Mesh(int id, int matIndex, const std::vector<Triangle>& faces, const std::vector<Transformation*>& transformations)
         : Shape(id, matIndex)
 {
     this->id = id;
     this->matIndex = matIndex;
     this->faces = faces;
+    this->objTransformations = transformations;
 }
 
 ReturnVal Mesh::intersect(const Ray& ray) const

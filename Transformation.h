@@ -1,5 +1,6 @@
 #ifndef _TRANSFORMATION_H_
 #define _TRANSFORMATION_H_
+
 #include "Eigen/Dense"
 
 enum TransformationType{None, Translation, Scaling, Rotation};
@@ -13,7 +14,7 @@ public:
     Eigen::Vector3f common;
 
     Transformation(void);
+    Transformation(int id, TransformationType type);
 };
-
 
 #endif

@@ -12,6 +12,7 @@
 #include <cmath>
 #include "happly.h"
 #include "Parser.h"
+#include "Helper.h"
 
 using namespace Eigen;
 using namespace tinyxml2;
@@ -384,8 +385,6 @@ void Scene::renderScene(void)
 		// Save image.
 		image.saveImage(cam->imageName);
 	}
-
-	std::cout << "Scalings size: " << scalings.size() << std::endl;
 }
 
 void Scene::PutMarkAt(int x, int y, Image& image)
@@ -405,18 +404,25 @@ Scene::Scene(const char* xmlPath)
 
 	XMLNode* pRoot = xmlDoc.FirstChild();
 
+    std::cout << "Parsing scene attributes." << std::endl;
     Parser::ParseSceneAttributes(pRoot, maxRecursionDepth, backgroundColor, shadowRayEps, intTestEps);
 
+    std::cout << "Parsing cameras." << std::endl;
 	Parser::ParseCameras(pRoot, cameras);
 
+    std::cout << "Parsing materials." << std::endl;
 	Parser::ParseMaterials(pRoot, materials);
 
+    std::cout << "Parsing transformations." << std::endl;
     Parser::ParseTransformations(pRoot, translations, scalings, rotations);
 
+    std::cout << "Parsing vertices." << std::endl;
     Parser::ParseVertices(pRoot, vertices);
 
+    std::cout << "Parsing objects." << std::endl;
 	Parser::ParseObjects(pRoot, xmlPath, objects, vertices);
 
+    std::cout << "Parsing lights." << std::endl;
 	Parser::ParseLights(pRoot, ambientLight, lights);
 
 	std::cout << "Parsing complete." << std::endl;
