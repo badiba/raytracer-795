@@ -13,6 +13,7 @@
 #include "happly.h"
 #include "Parser.h"
 #include "Helper.h"
+#include "glm/gtx/string_cast.hpp"
 
 using namespace Eigen;
 using namespace tinyxml2;
@@ -26,7 +27,7 @@ bool Scene::isDark(Vector3f point, const ReturnVal& ret, PointLight* light)
 	Ray ray(point + ret.normal * shadowRayEps, direction / direction.norm());
 
 	// Find nearest intersection of ray with all objects to see if there is a shadow.
-	ReturnVal nearestRet = bvh->FindIntersection(ray);
+    ReturnVal nearestRet = BVHMethods::FindIntersection(ray, objects, instances);
 
 	if (nearestRet.full)
 	{
@@ -82,7 +83,7 @@ ShadingComponent Scene::MirrorReflectance(const Ray& ray, const ReturnVal& ret)
 
 	// Check intersection of new ray.
 	Ray reflectedRay(ret.point + ret.normal * shadowRayEps, wr);
-	ReturnVal nearestRet = bvh->FindIntersection(reflectedRay);
+    ReturnVal nearestRet = BVHMethods::FindIntersection(reflectedRay, objects, instances);
 	int materialIndex = nearestRet.matIndex - 1;
 
 	return ShadingComponent{ reflectedRay, nearestRet, materials[materialIndex] };
@@ -136,7 +137,7 @@ DielectricComponent Scene::DielectricRefraction(const Ray& ray, const ReturnVal&
 	Ray tRay(ret.point - intTestEps * normal, tDirection);
 
 	// Return dielectric component.
-	ReturnVal nearestRet = bvh->FindIntersection(tRay);
+    ReturnVal nearestRet = BVHMethods::FindIntersection(tRay, objects, instances);
 	int materialIndex = nearestRet.matIndex - 1;
 
 	// Fresnel
@@ -299,6 +300,7 @@ Vector3f Scene::BasicShading(const Ray& ray, const ReturnVal& ret, Material* mat
 	return rawColor;
 }
 
+// TODO: MAKE THIS FASTER.
 void
 Scene::ThreadedRendering(int heightStart, int heightEnd, Image& image, Camera* cam)
 {
@@ -313,9 +315,11 @@ Scene::ThreadedRendering(int heightStart, int heightEnd, Image& image, Camera* c
 	{
 		for (int x = 0; x < image.width; x++)
 		{
+
+
 			// Find intersection of given ray using BVH.
 			ray = cam->getPrimaryRay(x, y);
-			nearestRet = bvh->FindIntersection(ray);
+            nearestRet = BVHMethods::FindIntersection(ray, objects, instances);
 
 			// If any intersection happened, compute shading.
 			if (nearestRet.full)
@@ -334,8 +338,17 @@ Scene::ThreadedRendering(int heightStart, int heightEnd, Image& image, Camera* c
 
 void Scene::renderScene(void)
 {
+    // Compute object transformation matrices.
+    Transforming::ComputeObjectTransformations(objects, instances, translations, scalings, rotations);
+
+    // Create BVH for all objects.
+    int objectSize = objects.size();
+    for (int i = 0; i < objectSize; i++){
+        objects[i]->bvh = new BVH(objects[i]);
+    }
+
 	// Create BVH.
-	bvh = new BVH();
+	//bvh = new BVH();
 	std::cout << "BVH construction complete." << std::endl;
 
 	// Save an image for all cameras.
@@ -387,6 +400,10 @@ void Scene::renderScene(void)
 	}
 }
 
+Color Scene::MultiSample(int row, int col){
+
+}
+
 void Scene::PutMarkAt(int x, int y, Image& image)
 {
 	image.setPixelValue(x - 1, y, Color{ 255, 0, 0 });
@@ -420,7 +437,7 @@ Scene::Scene(const char* xmlPath)
     Parser::ParseVertices(pRoot, vertices);
 
     std::cout << "Parsing objects." << std::endl;
-	Parser::ParseObjects(pRoot, xmlPath, objects, vertices);
+	Parser::ParseObjects(pRoot, xmlPath, objects, instances, vertices);
 
     std::cout << "Parsing lights." << std::endl;
 	Parser::ParseLights(pRoot, ambientLight, lights);

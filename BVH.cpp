@@ -50,6 +50,15 @@ BVH::BVH()
 	ConstructionHelper(0, primitives.size(), 0, root, 0);
 }
 
+BVH::BVH(Shape* object){
+    root = nullptr;
+    bvhMaxRecursionDepth = 24;
+
+    object->FillPrimitives(primitives);
+
+    ConstructionHelper(0, primitives.size(), 0, root, 0);
+}
+
 void BVH::ConstructionHelper(int startIndex, int endIndex, int splitType, BTNode<BBox>*& node, int recursionDepth)
 {
 	// Stopping condition.

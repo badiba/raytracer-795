@@ -13,6 +13,7 @@ public:
 	BTNode<BBox>* GetRoot();
 	void DebugBVH();
 	BVH();
+	BVH(Shape* object);
 
 private:
 	std::vector<Shape *> primitives;

@@ -44,6 +44,8 @@ class Shape;
 
 class BVH;
 
+class Instance;
+
 class Scene
 {
 public:
@@ -61,8 +63,9 @@ public:
     std::vector<Transformation*> rotations;
 	std::vector<Eigen::Vector3f> vertices;
 	std::vector<Shape*> objects;
+	std::vector<Instance*> instances;
 
-	BVH *bvh;
+	//BVH *bvh;
 
 	Scene(const char* xmlPath);
 
@@ -98,6 +101,8 @@ private:
 	float BeerLaw(float sigma_t, float distance);
 
 	float ConductorFresnel(float n_t, float k_t, const Ray& ray, const Eigen::Vector3f& normal);
+
+	Color MultiSample(int row, int col);
 };
 
 #endif

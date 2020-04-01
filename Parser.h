@@ -1,6 +1,8 @@
 #ifndef _PARSER_H_
 #define _PARSER_H_
 
+#include "Instance.h"
+
 using namespace tinyxml2;
 using namespace Eigen;
 
@@ -47,12 +49,20 @@ namespace Parser{
         XMLElement* camElement;
         while (pCamera != nullptr)
         {
-            int id;
+            int id, numSamples;
             char imageName[64];
             Vector3f pos, gaze, up;
             ImagePlane imgPlane;
 
             eResult = pCamera->QueryIntAttribute("id", &id);
+
+            // Parse NumSamples
+            numSamples = 1;
+            camElement = pCamera->FirstChildElement("NumSamples");
+            if(camElement){
+                eResult = camElement->QueryIntText(&numSamples);
+            }
+
             camElement = pCamera->FirstChildElement("Position");
             str = camElement->GetText();
             sscanf(str, "%f %f %f", &pos(0), &pos(1), &pos(2));
@@ -108,7 +118,7 @@ namespace Parser{
                 imgPlane.right = x;
             }
 
-            cameras.push_back(new Camera(id, imageName, pos, gaze, up, imgPlane));
+            cameras.push_back(new Camera(id, numSamples, imageName, pos, gaze, up, imgPlane));
 
             pCamera = pCamera->NextSiblingElement("Camera");
         }
@@ -354,7 +364,8 @@ namespace Parser{
         }
     }
 
-    void ParseObjects(XMLNode* pRoot, const char* xmlPath, std::vector<Shape*> &objects, std::vector<Vector3f> &vertices){
+    void ParseObjects(XMLNode* pRoot, const char* xmlPath, std::vector<Shape*> &objects, std::vector<Instance*> &instances,
+            std::vector<Vector3f> &vertices){
         const char* str;
         XMLError eResult;
 
@@ -426,6 +437,7 @@ namespace Parser{
         }
 
         // Parse meshes
+        int meshStartIndex = objects.size();
         std::cout << "- Parsing meshes." << std::endl;
         pObject = pElement->FirstChildElement("Mesh");
         while (pObject != nullptr)
@@ -547,6 +559,40 @@ namespace Parser{
             objects.push_back(new Mesh(id, matIndex, faces, transformations));
 
             pObject = pObject->NextSiblingElement("Mesh");
+        }
+
+        // Parse mesh instances.
+        std::cout << "- Parsing meshes instances." << std::endl;
+        pObject = pElement->FirstChildElement("MeshInstance");
+        while(pObject != nullptr){
+            int id, baseMeshId, matIndex;
+            bool resetTransform = false;
+            std::vector<Transformation*> transformations;
+            Shape* baseMesh;
+
+            eResult = pObject->QueryIntAttribute("id", &id);
+            eResult = pObject->QueryIntAttribute("baseMeshId", &baseMeshId);
+            eResult = pObject->QueryBoolAttribute("resetTransform", &resetTransform);
+
+            objElement = pObject->FirstChildElement("Material");
+            eResult = objElement->QueryIntText(&matIndex);
+
+            // Parse object transformations.
+            objElement = pObject->FirstChildElement("Transformations");
+            if (objElement != nullptr){
+                str = objElement->GetText();
+                ParseObjectTransformations(str, transformations);
+            }
+
+            int objectSize = objects.size();
+            for(int i = meshStartIndex; i < objectSize; i++){
+                if (objects[i]->id == baseMeshId){
+                    baseMesh = objects[i];
+                }
+            }
+
+            instances.push_back(new Instance(id, baseMesh, matIndex, resetTransform, transformations));
+            pObject = pObject->NextSiblingElement("MeshInstance");
         }
     }
 

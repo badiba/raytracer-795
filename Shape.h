@@ -4,16 +4,22 @@
 #include <vector>
 #include "Ray.h"
 #include "Eigen/Dense"
+#include "glm/gtx/string_cast.hpp"
 
 #include "defs.h"
 #include "Transformation.h"
+
+// Forward declarations to avoid cyclic references
+class BVH;
 
 class Shape
 {
 public:
     int id;
     int matIndex;
+    BVH *bvh;
 
+    glm::mat4* transformationMatrix;
     std::vector<Transformation*> objTransformations;
 
     virtual ReturnVal intersect(
