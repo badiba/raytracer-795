@@ -262,18 +262,13 @@ Vector3f Scene::NanCheck(Vector3f checkVector){
 	return checkVector;
 }
 
-Color Scene::Shading(const Ray& ray, const ReturnVal& ret, Material* mat)
+Eigen::Vector3f Scene::Shading(const Ray& ray, const ReturnVal& ret, Material* mat)
 {
 	// Create a new rawColor (not bounded to 255).
-	Vector3f rawColor = RecursiveShading(ray, ret, mat, maxRecursionDepth);
+	Vector3f color = RecursiveShading(ray, ret, mat, maxRecursionDepth);
 
 	// Clamp and return.
-	rawColor = rawColor.cwiseMin(255);
-	Color clampedColor{ (unsigned char)(rawColor(0)),
-			(unsigned char)(rawColor(1)),
-			(unsigned char)(rawColor(2)) };
-
-	return clampedColor;
+	return color.cwiseMin(255);
 }
 
 Vector3f Scene::BasicShading(const Ray& ray, const ReturnVal& ret, Material* mat)
@@ -306,33 +301,25 @@ Scene::ThreadedRendering(int heightStart, int heightEnd, Image& image, Camera* c
 {
 	Ray ray;
 	ReturnVal nearestRet;
-	Color bgColor = Color{ (unsigned char)backgroundColor(0),
-			(unsigned char)backgroundColor(1),
-			(unsigned char)backgroundColor(2) };
 
-	// For every pixel create a ray.
-	for (int y = heightStart; y < heightEnd; y++)
-	{
-		for (int x = 0; x < image.width; x++)
-		{
-
-
-			// Find intersection of given ray using BVH.
-			ray = cam->getPrimaryRay(x, y);
-            nearestRet = BVHMethods::FindIntersection(ray, objects, instances);
-
-			// If any intersection happened, compute shading.
-			if (nearestRet.full)
-			{
-				image.setPixelValue(x, y, Shading(ray, nearestRet,
-						materials[nearestRet.matIndex - 1]));
-			}
-				// Else paint with background color.
-			else
-			{
-				image.setPixelValue(x, y, bgColor);
-			}
-		}
+	bool isMultiSample = cam->GetTotalSampleCount() > 1;
+	if (isMultiSample){
+        for (int y = heightStart; y < heightEnd; y++)
+        {
+            for (int x = 0; x < image.width; x++)
+            {
+                image.setPixelValue(x, y, MultiSample(x, y, cam));
+            }
+        }
+	}
+	else{
+        for (int y = heightStart; y < heightEnd; y++)
+        {
+            for (int x = 0; x < image.width; x++)
+            {
+                image.setPixelValue(x, y, SingleSample(x, y, cam));
+            }
+        }
 	}
 }
 
@@ -400,8 +387,61 @@ void Scene::renderScene(void)
 	}
 }
 
-Color Scene::MultiSample(int row, int col){
+Color Scene::SingleSample(int row, int col, Camera* cam){
+    Ray ray;
+    Vector3f color;
+    ReturnVal nearestRet;
 
+    ray = cam->getPrimaryRay(row, col);
+    nearestRet = BVHMethods::FindIntersection(ray, objects, instances);
+
+    if (nearestRet.full)
+    {
+        color = Shading(ray, nearestRet, materials[nearestRet.matIndex - 1]);
+    }
+
+    else
+    {
+        color = backgroundColor;
+    }
+
+    return RawColorToColor(color);
+}
+
+Color Scene::MultiSample(int col, int row, Camera* cam){
+    Vector3f lbCorner = cam->PixelLBCorner(row, col);
+    Vector3f color = {0,0,0};
+    ReturnVal nearestRet;
+    Ray sampleRay;
+
+    int sampleCount = cam->GetTotalSampleCount();
+    for (int i = 0; i < sampleCount; i++){
+        sampleRay = cam->getSampleRay(lbCorner, i);
+        nearestRet = BVHMethods::FindIntersection(sampleRay, objects, instances);
+
+        // If any intersection happened, compute shading.
+        if (nearestRet.full)
+        {
+            color += Shading(sampleRay, nearestRet, materials[nearestRet.matIndex - 1]);
+        }
+            // Else paint with background color.
+        else
+        {
+            color += backgroundColor;
+        }
+    }
+
+    color = color / sampleCount;
+    return RawColorToColor(color);
+}
+
+Color Scene::RawColorToColor(Eigen::Vector3f color){
+    color = color.cwiseMin(255);
+    Color clampedColor{ (unsigned char)(color(0)),
+                        (unsigned char)(color(1)),
+                        (unsigned char)(color(2)) };
+
+    return clampedColor;
 }
 
 void Scene::PutMarkAt(int x, int y, Image& image)

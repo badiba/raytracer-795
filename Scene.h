@@ -92,7 +92,7 @@ private:
 
 	Eigen::Vector3f RecursiveShading(const Ray& ray, const ReturnVal& ret, Material* mat, int depth);
 
-	Color Shading(const Ray& ray, const ReturnVal& ret, Material* mat);
+    Eigen::Vector3f Shading(const Ray& ray, const ReturnVal& ret, Material* mat);
 
 	DielectricComponent DielectricRefraction(const Ray& ray, const ReturnVal& ret, Material* mat);
 
@@ -102,7 +102,11 @@ private:
 
 	float ConductorFresnel(float n_t, float k_t, const Ray& ray, const Eigen::Vector3f& normal);
 
-	Color MultiSample(int row, int col);
+	Color MultiSample(int row, int col, Camera* cam);
+
+    Color SingleSample(int row, int col, Camera* cam);
+
+	Color RawColorToColor(Eigen::Vector3f color);
 };
 
 #endif

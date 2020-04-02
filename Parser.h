@@ -50,11 +50,24 @@ namespace Parser{
         while (pCamera != nullptr)
         {
             int id, numSamples;
+            float focusDistance = 0, apertureSize = 0;
+            bool isDof = false;
             char imageName[64];
             Vector3f pos, gaze, up;
             ImagePlane imgPlane;
 
             eResult = pCamera->QueryIntAttribute("id", &id);
+
+            // Parse depth of field.
+            camElement = pCamera->FirstChildElement("FocusDistance");
+            if (camElement){
+                eResult = camElement->QueryFloatText(&focusDistance);
+                isDof = true;
+            }
+            camElement = pCamera->FirstChildElement("ApertureSize");
+            if (camElement){
+                eResult = camElement->QueryFloatText(&apertureSize);
+            }
 
             // Parse NumSamples
             numSamples = 1;
@@ -118,7 +131,8 @@ namespace Parser{
                 imgPlane.right = x;
             }
 
-            cameras.push_back(new Camera(id, numSamples, imageName, pos, gaze, up, imgPlane));
+            cameras.push_back(new Camera(id, numSamples, imageName, pos, gaze, up, imgPlane, focusDistance, apertureSize,
+                    isDof));
 
             pCamera = pCamera->NextSiblingElement("Camera");
         }
