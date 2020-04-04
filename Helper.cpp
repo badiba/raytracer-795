@@ -4,52 +4,73 @@
 
 namespace BVHMethods{
     ReturnVal FindIntersection(const Ray &ray, std::vector<Shape*> &objects, std::vector<Instance*> &instances){
-        Ray transformedRay;
+        Ray transformedRay(0);
         ReturnVal ret;
         ReturnVal nearestRet = {};
         float nearestDistance = std::numeric_limits<float>::max();
         float distance = 0;
-        glm::mat4* intersectTransformations;
+        glm::mat4 transformations(1.0);
+        glm::mat4 inverseTransformations;
+        glm::mat4 intersectionTransformation;
 
         int objectSize = objects.size();
         for (int i = 0; i < objectSize; i++){
-            transformedRay = Transforming::TransformRay(ray, objects[i]->transformationMatrix);
+            if (objects[i]->isBlur){
+                transformations = glm::translate(transformations, objects[i]->blurTransformation * ray.time);
+                transformations = transformations * *objects[i]->transformationMatrix;
+                inverseTransformations = glm::inverse(transformations);
+            }
+            else{
+                transformations = *objects[i]->transformationMatrix;
+                inverseTransformations = *objects[i]->inverse_tMatrix;
+            }
+
+            transformedRay = Transforming::TransformRay(ray, inverseTransformations);
             ret = objects[i]->bvh->FindIntersection(transformedRay);
             if (ret.full)
             {
-                ret.point = Transforming::TransformPoint(ret.point, *objects[i]->transformationMatrix);
+                ret.point = Transforming::TransformPoint(ret.point, transformations);
                 distance = (ret.point - ray.origin).norm();
 
                 if (distance < nearestDistance && distance > 0)
                 {
+                    intersectionTransformation = inverseTransformations;
                     nearestDistance = distance;
                     nearestRet = ret;
-                    intersectTransformations = objects[i]->transformationMatrix;
                 }
             }
         }
 
         int instanceSize = instances.size();
         for (int i = 0; i < instanceSize; i++){
-            transformedRay = Transforming::TransformRay(ray, instances[i]->transformationMatrix);
-            ret = instances[i]->baseMesh->bvh->FindIntersection(transformedRay);
+            if (instances[i]->isBlur){
+                transformations = glm::translate(transformations, instances[i]->blurTransformation * ray.time);
+                transformations = transformations * *instances[i]->transformationMatrix;
+                inverseTransformations = glm::inverse(transformations);
+            }
+            else{
+                transformations = *instances[i]->transformationMatrix;
+                inverseTransformations = *instances[i]->inverse_tMatrix;
+            }
 
+            transformedRay = Transforming::TransformRay(ray, inverseTransformations);
+            ret = instances[i]->baseMesh->bvh->FindIntersection(transformedRay);
             if (ret.full){
                 ret.matIndex = instances[i]->matIndex;
-                ret.point = Transforming::TransformPoint(ret.point, *instances[i]->transformationMatrix);
+                ret.point = Transforming::TransformPoint(ret.point, transformations);
                 distance = (ret.point - ray.origin).norm();
 
                 if (distance < nearestDistance && distance > 0)
                 {
+                    intersectionTransformation = inverseTransformations;
                     nearestDistance = distance;
                     nearestRet = ret;
-                    intersectTransformations = instances[i]->transformationMatrix;
                 }
             }
         }
 
         if (nearestRet.full){
-            nearestRet.normal = Transforming::TransformNormal(nearestRet.normal, intersectTransformations);
+            nearestRet.normal = Transforming::TransformNormal(nearestRet.normal, intersectionTransformation);
         }
 
         return nearestRet;
@@ -63,7 +84,7 @@ namespace Transforming{
 
     }
 
-    Eigen::Vector3f TransformPoint(Eigen::Vector3f point, glm::mat4 tMatrix){
+    Eigen::Vector3f TransformPoint(Eigen::Vector3f point, glm::mat4 &tMatrix){
         glm::vec4 glmPoint;
         glmPoint = {point[0], point[1], point[2], 1};
 
@@ -73,17 +94,17 @@ namespace Transforming{
         return Eigen::Vector3f{glmTransformedPoint[0], glmTransformedPoint[1], glmTransformedPoint[2]};
     }
 
-    Eigen::Vector3f TransformNormal(Eigen::Vector3f normal, glm::mat4* &tMatrix){
+    Eigen::Vector3f TransformNormal(Eigen::Vector3f normal, glm::mat4 &tMatrix){
         glm::vec4 glmNormal;
         glmNormal = {normal[0], normal[1], normal[2], 1};
 
         glm::vec3 glmTransformedNormal;
-        glmTransformedNormal = glm::inverseTranspose(*tMatrix) * glmNormal;
+        glmTransformedNormal = glm::transpose(tMatrix) * glmNormal;
 
         return Eigen::Vector3f{glmTransformedNormal[0], glmTransformedNormal[1], glmTransformedNormal[2]}.normalized();
     }
 
-    Ray TransformRay(const Ray& ray, glm::mat4* &tMatrix){
+    Ray TransformRay(const Ray& ray, glm::mat4 &tMatrix){
         glm::vec4 glmOrigin;
         glm::vec4 glmDirection;
         glmOrigin = {ray.origin[0], ray.origin[1], ray.origin[2], 1};
@@ -91,14 +112,15 @@ namespace Transforming{
 
         glm::vec3 glmTransformedOrigin;
         glm::vec3 glmTransformedDirection;
-        glmTransformedOrigin = glm::inverse(*tMatrix) * glmOrigin;
-        glmTransformedDirection = glm::inverse(*tMatrix) * glmDirection;
+        glmTransformedOrigin = tMatrix * glmOrigin;
+        glmTransformedDirection = tMatrix * glmDirection;
 
-        Ray transformedRay;
+        Ray transformedRay(0);
         transformedRay.origin = {glmTransformedOrigin[0], glmTransformedOrigin[1], glmTransformedOrigin[2]};
         transformedRay.direction = {glmTransformedDirection[0], glmTransformedDirection[1], glmTransformedDirection[2]};
 
         transformedRay.direction = transformedRay.direction.normalized();
+        transformedRay.SetTime(ray.time);
         return transformedRay;
     }
 
@@ -141,6 +163,9 @@ namespace Transforming{
                     *glmModel = glm::rotate(*glmModel, glm::radians(angle), glmCommon);
                 }
             }
+
+            objects[i]->inverse_tMatrix = new glm::mat4(1.0);
+            *objects[i]->inverse_tMatrix = glm::inverse(*glmModel);
         }
 
         int instanceSize = instances.size();
@@ -174,6 +199,9 @@ namespace Transforming{
             if (!instances[i]->resetTransform){
                 *glmModel = (*glmModel) * (*instances[i]->baseMesh->transformationMatrix);
             }
+
+            instances[i]->inverse_tMatrix = new glm::mat4(1.0);
+            *instances[i]->inverse_tMatrix = glm::inverse(*glmModel);
         }
     }
 }

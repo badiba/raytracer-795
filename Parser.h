@@ -395,6 +395,8 @@ namespace Parser{
             int matIndex;
             int cIndex;
             float R;
+            bool isBlur = false;
+            glm::vec3 blurTransformation = {0,0,0};
             std::vector<Transformation*> transformations;
 
             eResult = pObject->QueryIntAttribute("id", &id);
@@ -408,12 +410,20 @@ namespace Parser{
                 ParseObjectTransformations(str, transformations);
             }
 
+            // Parse motion blur.
+            objElement = pObject->FirstChildElement("MotionBlur");
+            if (objElement != nullptr){
+                isBlur = true;
+                str = objElement->GetText();
+                sscanf(str, "%f %f %f", &blurTransformation[0], &blurTransformation[1], &blurTransformation[2]);
+            }
+
             objElement = pObject->FirstChildElement("Center");
             eResult = objElement->QueryIntText(&cIndex);
             objElement = pObject->FirstChildElement("Radius");
             eResult = objElement->QueryFloatText(&R);
 
-            objects.push_back(new Sphere(id, matIndex, cIndex, R, transformations));
+            objects.push_back(new Sphere(id, matIndex, cIndex, R, transformations, blurTransformation, isBlur));
 
             pObject = pObject->NextSiblingElement("Sphere");
         }
@@ -428,6 +438,8 @@ namespace Parser{
             int p1Index;
             int p2Index;
             int p3Index;
+            bool isBlur = false;
+            glm::vec3 blurTransformation = {0,0,0};
             std::vector<Transformation*> transformations;
 
             eResult = pObject->QueryIntAttribute("id", &id);
@@ -441,11 +453,19 @@ namespace Parser{
                 ParseObjectTransformations(str, transformations);
             }
 
+            // Parse motion blur.
+            objElement = pObject->FirstChildElement("MotionBlur");
+            if (objElement != nullptr){
+                isBlur = true;
+                str = objElement->GetText();
+                sscanf(str, "%f %f %f", &blurTransformation[0], &blurTransformation[1], &blurTransformation[2]);
+            }
+
             objElement = pObject->FirstChildElement("Indices");
             str = objElement->GetText();
             sscanf(str, "%d %d %d", &p1Index, &p2Index, &p3Index);
 
-            objects.push_back(new Triangle(id, matIndex, p1Index, p2Index, p3Index, transformations));
+            objects.push_back(new Triangle(id, matIndex, p1Index, p2Index, p3Index, transformations, blurTransformation, isBlur));
 
             pObject = pObject->NextSiblingElement("Triangle");
         }
@@ -459,6 +479,8 @@ namespace Parser{
             int id, matIndex, p1Index, p2Index, p3Index, cursor, vertexOffset;
             cursor = 0;
             vertexOffset = 0;
+            bool isBlur = false;
+            glm::vec3 blurTransformation = {0,0,0};
             std::vector<Triangle> faces;
             std::vector<Transformation*> transformations;
 
@@ -471,6 +493,14 @@ namespace Parser{
             if (objElement != nullptr){
                 str = objElement->GetText();
                 ParseObjectTransformations(str, transformations);
+            }
+
+            // Parse motion blur.
+            objElement = pObject->FirstChildElement("MotionBlur");
+            if (objElement != nullptr){
+                isBlur = true;
+                str = objElement->GetText();
+                sscanf(str, "%f %f %f", &blurTransformation[0], &blurTransformation[1], &blurTransformation[2]);
             }
 
             objElement = pObject->FirstChildElement("Faces");
@@ -528,7 +558,7 @@ namespace Parser{
                     vertices.push_back(vertex);
                 }
 
-                objects.push_back(new Mesh(id, matIndex, faces, transformations));
+                objects.push_back(new Mesh(id, matIndex, faces, transformations, blurTransformation, isBlur));
 
                 pObject = pObject->NextSiblingElement("Mesh");
                 continue;
@@ -570,7 +600,7 @@ namespace Parser{
                 faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index)));
             }
 
-            objects.push_back(new Mesh(id, matIndex, faces, transformations));
+            objects.push_back(new Mesh(id, matIndex, faces, transformations, blurTransformation, isBlur));
 
             pObject = pObject->NextSiblingElement("Mesh");
         }
@@ -581,6 +611,8 @@ namespace Parser{
         while(pObject != nullptr){
             int id, baseMeshId, matIndex;
             bool resetTransform = false;
+            bool isBlur = false;
+            glm::vec3 blurTransformation = {0,0,0};
             std::vector<Transformation*> transformations;
             Shape* baseMesh;
 
@@ -598,6 +630,14 @@ namespace Parser{
                 ParseObjectTransformations(str, transformations);
             }
 
+            // Parse motion blur.
+            objElement = pObject->FirstChildElement("MotionBlur");
+            if (objElement != nullptr){
+                isBlur = true;
+                str = objElement->GetText();
+                sscanf(str, "%f %f %f", &blurTransformation[0], &blurTransformation[1], &blurTransformation[2]);
+            }
+
             int objectSize = objects.size();
             for(int i = meshStartIndex; i < objectSize; i++){
                 if (objects[i]->id == baseMeshId){
@@ -605,7 +645,7 @@ namespace Parser{
                 }
             }
 
-            instances.push_back(new Instance(id, baseMesh, matIndex, resetTransform, transformations));
+            instances.push_back(new Instance(id, baseMesh, matIndex, resetTransform, transformations, blurTransformation, isBlur));
             pObject = pObject->NextSiblingElement("MeshInstance");
         }
     }

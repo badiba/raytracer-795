@@ -20,7 +20,8 @@ Sphere::Sphere(void)
 {
 }
 
-Sphere::Sphere(int id, int matIndex, int cIndex, float R, const std::vector<Transformation*>& transformations)
+Sphere::Sphere(int id, int matIndex, int cIndex, float R, const std::vector<Transformation*>& transformations,
+               glm::vec3 &blurTransformation, bool isBlur)
         : Shape(id, matIndex)
 {
     this->id = id;
@@ -28,6 +29,8 @@ Sphere::Sphere(int id, int matIndex, int cIndex, float R, const std::vector<Tran
     this->cIndex = cIndex;
     this->R = R;
     this->objTransformations = transformations;
+    this->blurTransformation = blurTransformation;
+    this->isBlur = isBlur;
 }
 
 Sphere::Sphere(int id, int matIndex, int cIndex, float R)
@@ -85,7 +88,7 @@ ReturnVal Sphere::intersect(const Ray& ray) const
 
 void Sphere::FillPrimitives(std::vector<Shape*> &primitives) const
 {
-	primitives.push_back(new Sphere(id, matIndex, cIndex, R, objTransformations));
+	primitives.push_back(new Sphere(id, matIndex, cIndex, R));
 }
 
 BBox Sphere::GetBoundingBox() const
@@ -106,7 +109,8 @@ Triangle::Triangle(void)
 {
 }
 
-Triangle::Triangle(int id, int matIndex, int p1Index, int p2Index, int p3Index, const std::vector<Transformation*>& transformations)
+Triangle::Triangle(int id, int matIndex, int p1Index, int p2Index, int p3Index, const std::vector<Transformation*>& transformations,
+                   glm::vec3 &blurTransformation, bool isBlur)
         : Shape(id, matIndex)
 {
     this->id = id;
@@ -115,6 +119,8 @@ Triangle::Triangle(int id, int matIndex, int p1Index, int p2Index, int p3Index, 
     this->p2Index = p2Index;
     this->p3Index = p3Index;
     this->objTransformations = transformations;
+    this->blurTransformation = blurTransformation;
+    this->isBlur = isBlur;
 }
 
 Triangle::Triangle(int id, int matIndex, int p1Index, int p2Index, int p3Index)
@@ -212,13 +218,16 @@ Mesh::Mesh()
 {
 }
 
-Mesh::Mesh(int id, int matIndex, const std::vector<Triangle>& faces, const std::vector<Transformation*>& transformations)
+Mesh::Mesh(int id, int matIndex, const std::vector<Triangle>& faces, const std::vector<Transformation*>& transformations,
+           glm::vec3 &blurTransformation, bool isBlur)
         : Shape(id, matIndex)
 {
     this->id = id;
     this->matIndex = matIndex;
     this->faces = faces;
     this->objTransformations = transformations;
+    this->blurTransformation = blurTransformation;
+    this->isBlur = isBlur;
 }
 
 ReturnVal Mesh::intersect(const Ray& ray) const

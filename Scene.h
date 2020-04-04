@@ -78,7 +78,7 @@ private:
 
 	Eigen::Vector3f diffuse(ReturnVal ret, Material* mat, Ray ray, PointLight* light);
 
-	bool isDark(Eigen::Vector3f point, const ReturnVal& ret, PointLight* light);
+	bool isDark(const Ray& primeRay, Eigen::Vector3f point, const ReturnVal& ret, PointLight* light);
 
 	Eigen::Vector3f specular(Ray ray, ReturnVal ret, Material* mat, PointLight* light);
 
@@ -86,7 +86,7 @@ private:
 
 	Eigen::Vector3f BasicShading(const Ray& ray, const ReturnVal& ret, Material* mat);
 
-	void ThreadedRendering(int heightStart, int heightOffset, Image& image, Camera* cam);
+	void ThreadedRendering(int threadIndex, Image& image, Camera* cam);
 
 	ShadingComponent MirrorReflectance(const Ray& ray, const ReturnVal& ret);
 

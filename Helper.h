@@ -11,10 +11,9 @@
 #include "Instance.h"
 
 namespace Transforming{
-    Eigen::Vector3f TransformPoint(Eigen::Vector3f point, glm::mat4 tMatrix);
-    Ray TransformRay(const Ray& ray, glm::mat4* &tMatrix);
-    Eigen::Vector3f TransformNormal(Eigen::Vector3f normal, glm::mat4* &tMatrix);
-    bool FloatEquality(float a, float b);
+    Eigen::Vector3f TransformPoint(Eigen::Vector3f point, glm::mat4 &tMatrix);
+    Ray TransformRay(const Ray& ray, glm::mat4 &tMatrix);
+    Eigen::Vector3f TransformNormal(Eigen::Vector3f normal, glm::mat4 &tMatrix);
 
     void ComputeObjectTransformations(std::vector<Shape*> &objects, std::vector<Instance*> instances, std::vector<Transformation*> &translations,
                               std::vector<Transformation*> &scalings, std::vector<Transformation*> &rotations);

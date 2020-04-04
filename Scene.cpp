@@ -18,13 +18,13 @@
 using namespace Eigen;
 using namespace tinyxml2;
 
-bool Scene::isDark(Vector3f point, const ReturnVal& ret, PointLight* light)
+bool Scene::isDark(const Ray& primeRay, Vector3f point, const ReturnVal& ret, PointLight* light)
 {
 	// Find direction vector from intersection to light.
 	Vector3f direction = light->position - point;
 
 	// Create a new ray. Origin is moved with epsilon towards light to avoid self intersection.
-	Ray ray(point + ret.normal * shadowRayEps, direction / direction.norm());
+	Ray ray(point + ret.normal * shadowRayEps, direction / direction.norm(), primeRay.time);
 
 	// Find nearest intersection of ray with all objects to see if there is a shadow.
     ReturnVal nearestRet = BVHMethods::FindIntersection(ray, objects, instances);
@@ -82,7 +82,7 @@ ShadingComponent Scene::MirrorReflectance(const Ray& ray, const ReturnVal& ret)
 	wr = wr / wr.norm();
 
 	// Check intersection of new ray.
-	Ray reflectedRay(ret.point + ret.normal * shadowRayEps, wr);
+	Ray reflectedRay(ret.point + ret.normal * shadowRayEps, wr, ray.time);
     ReturnVal nearestRet = BVHMethods::FindIntersection(reflectedRay, objects, instances);
 	int materialIndex = nearestRet.matIndex - 1;
 
@@ -134,7 +134,7 @@ DielectricComponent Scene::DielectricRefraction(const Ray& ray, const ReturnVal&
 	squareRootPart = sqrt(squareRootPart);
 	Vector3f tDirection = leftPart - (normal * squareRootPart);
 	tDirection = tDirection.normalized();
-	Ray tRay(ret.point - intTestEps * normal, tDirection);
+	Ray tRay(ret.point - intTestEps * normal, tDirection, ray.time);
 
 	// Return dielectric component.
     ReturnVal nearestRet = BVHMethods::FindIntersection(tRay, objects, instances);
@@ -282,7 +282,7 @@ Vector3f Scene::BasicShading(const Ray& ray, const ReturnVal& ret, Material* mat
 	// Check shadows for diffuse and specular shading (for every light source).
 	for (int i = 0; i < lights.size(); i++)
 	{
-		if (isDark(ret.point, ret, lights[i]))
+		if (isDark(ray, ret.point, ret, lights[i]))
 		{
 			continue;
 		}
@@ -297,25 +297,24 @@ Vector3f Scene::BasicShading(const Ray& ray, const ReturnVal& ret, Material* mat
 
 // TODO: MAKE THIS FASTER.
 void
-Scene::ThreadedRendering(int heightStart, int heightEnd, Image& image, Camera* cam)
+Scene::ThreadedRendering(int threadIndex, Image& image, Camera* cam)
 {
-	Ray ray;
-	ReturnVal nearestRet;
-
 	bool isMultiSample = cam->GetTotalSampleCount() > 1;
+	int threadCount = 8;
+	int height = image.height;
 	if (isMultiSample){
-        for (int y = heightStart; y < heightEnd; y++)
+        for (int y = 0; y < height; y++)
         {
-            for (int x = 0; x < image.width; x++)
+            for (int x = threadIndex; x < image.width; x += threadCount)
             {
                 image.setPixelValue(x, y, MultiSample(x, y, cam));
             }
         }
 	}
 	else{
-        for (int y = heightStart; y < heightEnd; y++)
+        for (int y = 0; y < height; y++)
         {
-            for (int x = 0; x < image.width; x++)
+            for (int x = threadIndex; x < image.width; x += threadCount)
             {
                 image.setPixelValue(x, y, SingleSample(x, y, cam));
             }
@@ -350,28 +349,28 @@ void Scene::renderScene(void)
 		int offset_height = height / 8;
 		int heightStart = 0;
 		int heightEnd = offset_height;
-		std::thread threadObj1(&Scene::ThreadedRendering, this, heightStart, heightEnd, std::ref(image), cam);
+		std::thread threadObj1(&Scene::ThreadedRendering, this, 0, std::ref(image), cam);
 		heightStart += offset_height;
 		heightEnd += offset_height;
-		std::thread threadObj2(&Scene::ThreadedRendering, this, heightStart, heightEnd, std::ref(image), cam);
+		std::thread threadObj2(&Scene::ThreadedRendering, this, 1, std::ref(image), cam);
 		heightStart += offset_height;
 		heightEnd += offset_height;
-		std::thread threadObj3(&Scene::ThreadedRendering, this, heightStart, heightEnd, std::ref(image), cam);
+		std::thread threadObj3(&Scene::ThreadedRendering, this, 2, std::ref(image), cam);
 		heightStart += offset_height;
 		heightEnd += offset_height;
-		std::thread threadObj4(&Scene::ThreadedRendering, this, heightStart, heightEnd, std::ref(image), cam);
+		std::thread threadObj4(&Scene::ThreadedRendering, this, 3, std::ref(image), cam);
 		heightStart += offset_height;
 		heightEnd += offset_height;
-		std::thread threadObj5(&Scene::ThreadedRendering, this, heightStart, heightEnd, std::ref(image), cam);
+		std::thread threadObj5(&Scene::ThreadedRendering, this, 4, std::ref(image), cam);
 		heightStart += offset_height;
 		heightEnd += offset_height;
-		std::thread threadObj6(&Scene::ThreadedRendering, this, heightStart, heightEnd, std::ref(image), cam);
+		std::thread threadObj6(&Scene::ThreadedRendering, this, 5, std::ref(image), cam);
 		heightStart += offset_height;
 		heightEnd += offset_height;
-		std::thread threadObj7(&Scene::ThreadedRendering, this, heightStart, heightEnd, std::ref(image), cam);
+		std::thread threadObj7(&Scene::ThreadedRendering, this, 6, std::ref(image), cam);
 		heightStart += offset_height;
 		heightEnd = height;
-		std::thread threadObj8(&Scene::ThreadedRendering, this, heightStart, heightEnd, std::ref(image), cam);
+		std::thread threadObj8(&Scene::ThreadedRendering, this, 7, std::ref(image), cam);
 
 		threadObj1.join();
 		threadObj2.join();
@@ -388,7 +387,7 @@ void Scene::renderScene(void)
 }
 
 Color Scene::SingleSample(int row, int col, Camera* cam){
-    Ray ray;
+    Ray ray(0);
     Vector3f color;
     ReturnVal nearestRet;
 
@@ -412,7 +411,7 @@ Color Scene::MultiSample(int col, int row, Camera* cam){
     Vector3f lbCorner = cam->PixelLBCorner(row, col);
     Vector3f color = {0,0,0};
     ReturnVal nearestRet;
-    Ray sampleRay;
+    Ray sampleRay(0);
 
     int sampleCount = cam->GetTotalSampleCount();
     for (int i = 0; i < sampleCount; i++){

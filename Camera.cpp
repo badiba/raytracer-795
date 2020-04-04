@@ -60,7 +60,7 @@ Ray Camera::getPrimaryRay(int col, int row) const
 	Vector3f m = pos + gaze * imgPlane.distance;
 	m += u * right;
 	m += v * up;
-	Ray ray(pos, (m - pos) / ((m - pos).norm()));
+	Ray ray(pos, (m - pos) / ((m - pos).norm()), 0);
 	return ray;
 }
 
@@ -95,14 +95,14 @@ Ray Camera::getSampleRay(Eigen::Vector3f &lbCorner, int sampleIndex){
     m += (i + xChi) * sampleWidth * right;
     m += (j + yChi) * sampleHeight * up;
 
-    Ray ray(pos, (m - pos) / ((m - pos).norm()));
+    Ray ray(pos, (m - pos) / ((m - pos).norm()), 0);
     if (isDof){
         return AddDepthOfField(m, ray);
     }
-    else{
-        return ray;
-    }
 
+    float rayTime = dist(mt);
+    ray.SetTime(rayTime);
+    return ray;
 }
 
 int Camera::GetTotalSampleCount() {
@@ -128,5 +128,5 @@ Ray Camera::AddDepthOfField(Vector3f &s, Ray &r){
     p = r.getPoint(t_fd);
 
     // direction of new ray will be p - q
-    return Ray(q, (p - q).normalized());
+    return Ray(q, (p - q).normalized(), 0);
 }
