@@ -3,6 +3,15 @@
 #include "Instance.h"
 
 namespace BVHMethods{
+    bool isNaN(Eigen::Vector3f checkVector){
+        if (checkVector[0] != checkVector[0] || checkVector[1] != checkVector[1] || checkVector[2] != checkVector[2])
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     ReturnVal FindIntersection(const Ray &ray, std::vector<Shape*> &objects, std::vector<Instance*> &instances){
         Ray transformedRay(0);
         ReturnVal ret;
@@ -12,6 +21,10 @@ namespace BVHMethods{
         glm::mat4 transformations(1.0);
         glm::mat4 inverseTransformations;
         glm::mat4 intersectionTransformation;
+
+        if (isNaN(ray.origin) || isNaN(ray.direction)){
+            return nearestRet;
+        }
 
         int objectSize = objects.size();
         for (int i = 0; i < objectSize; i++){

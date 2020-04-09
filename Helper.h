@@ -20,6 +20,7 @@ namespace Transforming{
 }
 
 namespace BVHMethods{
+    bool isNaN(Eigen::Vector3f checkVector);
     ReturnVal FindIntersection(const Ray& ray, std::vector<Shape*> &objects, std::vector<Instance*> &instances);
 }
 

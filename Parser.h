@@ -541,10 +541,23 @@ namespace Parser{
                 int vertexCount = vertices.size() + 1;
                 for (int i = 0; i < fIndSize; i++)
                 {
-                    p1Index = fInd[i][0] + vertexCount;
-                    p2Index = fInd[i][1] + vertexCount;
-                    p3Index = fInd[i][2] + vertexCount;
-                    faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index)));
+                    if (fInd[i].size() == 4){
+                        p1Index = fInd[i][0] + vertexCount;
+                        p2Index = fInd[i][1] + vertexCount;
+                        p3Index = fInd[i][2] + vertexCount;
+                        faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index)));
+
+                        p1Index = fInd[i][2] + vertexCount;
+                        p2Index = fInd[i][3] + vertexCount;
+                        p3Index = fInd[i][0] + vertexCount;
+                        faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index)));
+                    }
+                    else{
+                        p1Index = fInd[i][0] + vertexCount;
+                        p2Index = fInd[i][1] + vertexCount;
+                        p3Index = fInd[i][2] + vertexCount;
+                        faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index)));
+                    }
                 }
 
                 std::vector<std::array<double, 3>> vPos = plyIn.getVertexPositions();

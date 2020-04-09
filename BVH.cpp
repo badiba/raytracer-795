@@ -52,7 +52,7 @@ BVH::BVH()
 
 BVH::BVH(Shape* object){
     root = nullptr;
-    bvhMaxRecursionDepth = 24;
+    bvhMaxRecursionDepth = 30;
 
     object->FillPrimitives(primitives);
 
@@ -327,13 +327,5 @@ BTNode<BBox>* BVH::GetRoot()
 
 void BVH::DebugBVH()
 {
-	/*
-	// Traverse all primitives.
-	for (int i = 0; i < primitives.size(); i++)
-	{
-		// Print ID of primitives.
-		std::cout << primitives[i]->id << std::endl;
-	}*/
 
-	std::cout << "min: " << root->data.minPoint << " max: " << root->data.maxPoint << std::endl;
 }
