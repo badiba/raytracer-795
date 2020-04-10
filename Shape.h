@@ -24,6 +24,7 @@ public:
 
     glm::mat4* transformationMatrix;
     glm::mat4* inverse_tMatrix;
+    glm::mat4* inverseTranspose_tMatrix;
     std::vector<Transformation*> objTransformations;
 
     virtual ReturnVal intersect(

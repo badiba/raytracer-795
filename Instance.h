@@ -16,6 +16,7 @@ public:
     glm::vec3 blurTransformation;
     Shape* baseMesh;
     glm::mat4* inverse_tMatrix;
+    glm::mat4* inverseTranspose_tMatrix;
     glm::mat4* transformationMatrix;
     std::vector<Transformation*> objTransformations;
 
