@@ -35,13 +35,13 @@ namespace BVHMethods{
             ret = objects[i]->bvh->FindIntersection(transformedRay);
             if (ret.full)
             {
-                ret.point = ray.getPoint(transformedRay.gett(ret.point)); // CAN AVOID THIS
-                distance = (ret.point - ray.origin).norm();
+                distance = transformedRay.gett(ret.point);
 
                 if (distance < nearestDistance && distance > 0)
                 {
-                    inverseTranspose = *objects[i]->inverseTranspose_tMatrix;
                     nearestDistance = distance;
+                    inverseTranspose = *objects[i]->inverseTranspose_tMatrix;
+                    ret.point = ray.getPoint(distance);
                     nearestRet = ret;
                 }
             }
@@ -54,15 +54,16 @@ namespace BVHMethods{
 
             transformedRay = Transforming::TransformRay(ray, inverseTransformations, blur);
             ret = instances[i]->baseMesh->bvh->FindIntersection(transformedRay);
-            if (ret.full){
-                ret.matIndex = instances[i]->matIndex;
-                ret.point = ray.getPoint(transformedRay.gett(ret.point));
-                distance = (ret.point - ray.origin).norm();
+            if (ret.full)
+            {
+                distance = transformedRay.gett(ret.point);
 
                 if (distance < nearestDistance && distance > 0)
                 {
-                    inverseTranspose = *instances[i]->inverseTranspose_tMatrix;
                     nearestDistance = distance;
+                    inverseTranspose = *instances[i]->inverseTranspose_tMatrix;
+                    ret.matIndex = instances[i]->matIndex;
+                    ret.point = ray.getPoint(distance);
                     nearestRet = ret;
                 }
             }

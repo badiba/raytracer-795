@@ -123,7 +123,7 @@ Triangle::Triangle(int id, int matIndex, int p1Index, int p2Index, int p3Index, 
     this->isBlur = isBlur;
 }
 
-Triangle::Triangle(int id, int matIndex, int p1Index, int p2Index, int p3Index)
+Triangle::Triangle(int id, int matIndex, int p1Index, int p2Index, int p3Index, bool isSmooth)
         : Shape(id, matIndex)
 {
     this->id = id;
@@ -131,6 +131,7 @@ Triangle::Triangle(int id, int matIndex, int p1Index, int p2Index, int p3Index)
     this->p1Index = p1Index;
     this->p2Index = p2Index;
     this->p3Index = p3Index;
+    this->isSmooth = isSmooth;
 }
 
 int Triangle::GetIndexOne() {
@@ -152,8 +153,6 @@ ReturnVal Triangle::intersect(const Ray& ray) const
     b = pScene->vertices[p2Index - 1];
     c = pScene->vertices[p3Index - 1];
 
-    Vector3f normal = (c - b).cross(a - b);
-
     Matrix3f matrix, matrix_beta, matrix_gamma, matrix_t;
     matrix << a - b, a - c, ray.direction;
     matrix_beta << a - ray.origin, a - c, ray.direction;
@@ -168,6 +167,16 @@ ReturnVal Triangle::intersect(const Ray& ray) const
     gamma = (matrix_gamma).determinant() / (det);
     t = (matrix_t).determinant() / (det);
 
+    Vector3f normal;
+    if (isSmooth){
+        float alpha = 1 - beta - gamma;
+        normal = pScene->vertexNormals[p1Index-1] * alpha + pScene->vertexNormals[p2Index-1] * beta +
+                pScene->vertexNormals[p3Index-1] * gamma;
+    }
+    else{
+        normal = (c - b).cross(a - b);
+    }
+
     if (t >= -pScene->intTestEps && (beta + gamma <= 1) && beta >= -pScene->intTestEps &&
             gamma >= -pScene->intTestEps)
     {
@@ -181,7 +190,7 @@ ReturnVal Triangle::intersect(const Ray& ray) const
 
 void Triangle::FillPrimitives(std::vector<Shape*> &primitives) const
 {
-	primitives.push_back(new Triangle(id, matIndex, p1Index, p2Index, p3Index));
+	primitives.push_back(new Triangle(id, matIndex, p1Index, p2Index, p3Index, isSmooth));
 }
 
 BBox Triangle::GetBoundingBox() const
@@ -219,7 +228,7 @@ Mesh::Mesh()
 }
 
 Mesh::Mesh(int id, int matIndex, const std::vector<Triangle>& faces, const std::vector<Transformation*>& transformations,
-           glm::vec3 &blurTransformation, bool isBlur)
+           glm::vec3 &blurTransformation, bool isBlur, bool isSmooth)
         : Shape(id, matIndex)
 {
     this->id = id;
@@ -228,6 +237,7 @@ Mesh::Mesh(int id, int matIndex, const std::vector<Triangle>& faces, const std::
     this->objTransformations = transformations;
     this->blurTransformation = blurTransformation;
     this->isBlur = isBlur;
+    this->isSmooth = isSmooth;
 }
 
 ReturnVal Mesh::intersect(const Ray& ray) const
@@ -273,4 +283,38 @@ BBox Mesh::GetBoundingBox() const
 Eigen::Vector3f Mesh::GetCenter() const
 {
 	return Vector3f {};
+}
+
+void Shape::ComputeSmoothNormals(){
+
+}
+
+void Sphere::ComputeSmoothNormals() {
+
+}
+
+void Triangle::ComputeSmoothNormals() {
+    Vector3f a, b, c;
+    a = pScene->vertices[p1Index - 1];
+    b = pScene->vertices[p2Index - 1];
+    c = pScene->vertices[p3Index - 1];
+
+    Vector3f normal = ((c - b).cross(a - b)).normalized();
+
+    pScene->vertexNormals[p1Index - 1] += normal;
+    pScene->vertexNormals[p2Index - 1] += normal;
+    pScene->vertexNormals[p3Index - 1] += normal;
+
+    isSmooth = true;
+}
+
+void Mesh::ComputeSmoothNormals() {
+    if (!isSmooth){
+        return;
+    }
+
+    int faceSize = faces.size();
+    for (int i = 0; i < faceSize; i++){
+        faces[i].ComputeSmoothNormals();
+    }
 }

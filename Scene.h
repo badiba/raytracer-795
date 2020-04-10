@@ -64,6 +64,7 @@ public:
 	std::vector<Eigen::Vector3f> vertices;
 	std::vector<Shape*> objects;
 	std::vector<Instance*> instances;
+	std::vector<Eigen::Vector3f> vertexNormals;
 
 	//BVH *bvh;
 

@@ -327,8 +327,25 @@ void Scene::renderScene(void)
     // Compute object transformation matrices.
     Transforming::ComputeObjectTransformations(objects, instances, translations, scalings, rotations);
 
-    // Create BVH for all objects.
+    // Fill in vertex normals.
+    Eigen::Vector3f emptyNormal = {0,0,0};
+    int vertexSize = vertices.size();
+    for (int i = 0; i < vertexSize; i++){
+        vertexNormals.push_back(emptyNormal);
+    }
+
+    // Compute vertex normals for smooth objects.
     int objectSize = objects.size();
+    for (int i = 0; i < objectSize; i++){
+        objects[i]->ComputeSmoothNormals();
+    }
+
+    // Normalize vertex normals.
+    for (int i = 0; i < vertexSize; i++){
+        vertexNormals[i] = vertexNormals[i].normalized();
+    }
+
+    // Create BVH for all objects.
     for (int i = 0; i < objectSize; i++){
         objects[i]->bvh = new BVH(objects[i]);
     }

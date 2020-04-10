@@ -480,11 +480,31 @@ namespace Parser{
             cursor = 0;
             vertexOffset = 0;
             bool isBlur = false;
+
             glm::vec3 blurTransformation = {0,0,0};
             std::vector<Triangle> faces;
             std::vector<Transformation*> transformations;
 
             eResult = pObject->QueryIntAttribute("id", &id);
+
+            // Parse Is Smooth
+            bool isSmooth = false;
+            const XMLAttribute* attr = pObject->FirstAttribute();
+            while (attr != nullptr)
+            {
+                if (std::strncmp(attr->Name(), "shadingMode", 11) != 0)
+                {
+                    attr = attr->Next();
+                    continue;
+                }
+
+                if (std::strncmp(attr->Value(), "smooth", 6) == 0)
+                {
+                    isSmooth = true;
+                }
+                break;
+            }
+
             objElement = pObject->FirstChildElement("Material");
             eResult = objElement->QueryIntText(&matIndex);
 
@@ -507,7 +527,7 @@ namespace Parser{
 
             // Parse PLY File ---------> BEGIN.
             bool isPly = false;
-            const XMLAttribute* attr = objElement->FirstAttribute();
+            attr = objElement->FirstAttribute();
             while (attr != nullptr)
             {
                 if (std::strncmp(attr->Name(), "plyFile", 7) != 0)
@@ -545,18 +565,18 @@ namespace Parser{
                         p1Index = fInd[i][0] + vertexCount;
                         p2Index = fInd[i][1] + vertexCount;
                         p3Index = fInd[i][2] + vertexCount;
-                        faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index)));
+                        faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index, isSmooth)));
 
                         p1Index = fInd[i][2] + vertexCount;
                         p2Index = fInd[i][3] + vertexCount;
                         p3Index = fInd[i][0] + vertexCount;
-                        faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index)));
+                        faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index, isSmooth)));
                     }
                     else{
                         p1Index = fInd[i][0] + vertexCount;
                         p2Index = fInd[i][1] + vertexCount;
                         p3Index = fInd[i][2] + vertexCount;
-                        faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index)));
+                        faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index, isSmooth)));
                     }
                 }
 
@@ -571,7 +591,7 @@ namespace Parser{
                     vertices.push_back(vertex);
                 }
 
-                objects.push_back(new Mesh(id, matIndex, faces, transformations, blurTransformation, isBlur));
+                objects.push_back(new Mesh(id, matIndex, faces, transformations, blurTransformation, isBlur, isSmooth));
 
                 pObject = pObject->NextSiblingElement("Mesh");
                 continue;
@@ -610,10 +630,10 @@ namespace Parser{
                         cursor++;
                     }
                 }
-                faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index)));
+                faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index, isSmooth)));
             }
 
-            objects.push_back(new Mesh(id, matIndex, faces, transformations, blurTransformation, isBlur));
+            objects.push_back(new Mesh(id, matIndex, faces, transformations, blurTransformation, isBlur, isSmooth));
 
             pObject = pObject->NextSiblingElement("Mesh");
         }
