@@ -73,13 +73,22 @@ Vector3f Scene::ambient(Material* mat)
 	return ambientColor;
 }
 
-ShadingComponent Scene::MirrorReflectance(const Ray& ray, const ReturnVal& ret)
+ShadingComponent Scene::MirrorReflectance(const Ray& ray, const ReturnVal& ret, Material* mat)
 {
 	// Angle computations.
 	Vector3f wo = -ray.direction;
 	float n_wo = ret.normal.dot(wo);
 	Vector3f wr = -wo + ret.normal * 2 * n_wo;
 	wr = wr / wr.norm();
+
+	// Compute roughness
+    if (mat->isRough){
+        Vector3f uVector = GeometryHelpers::GetOrthonormalUVector(wr);
+        Vector3f vVector = wr.cross(uVector);
+        float uChi = dist(mt) - 0.5f;
+        float vChi = dist(mt) - 0.5f;
+        wr = (wr + ((uVector * uChi + vVector * vChi) * mat->roughness)).normalized();
+    }
 
 	// Check intersection of new ray.
 	Ray reflectedRay(ret.point + ret.normal * shadowRayEps, wr, ray.time);
@@ -134,7 +143,7 @@ DielectricComponent Scene::DielectricRefraction(const Ray& ray, const ReturnVal&
 	squareRootPart = sqrt(squareRootPart);
 	Vector3f tDirection = leftPart - (normal * squareRootPart);
 	tDirection = tDirection.normalized();
-	Ray tRay(ret.point - intTestEps * normal, tDirection, ray.time);
+	Ray tRay(ret.point - shadowRayEps * normal, tDirection, ray.time);
 
 	// Return dielectric component.
     ReturnVal nearestRet = BVHMethods::FindIntersection(tRay, objects, instances);
@@ -193,7 +202,7 @@ Vector3f Scene::RecursiveShading(const Ray& ray, const ReturnVal& ret, Material*
 	}
 	else if (mat->type == Mirror)
 	{
-		ShadingComponent sc = MirrorReflectance(ray, ret);
+		ShadingComponent sc = MirrorReflectance(ray, ret, mat);
 		Vector3f reflectedColor = RecursiveShading(sc.ray, sc.ret, sc.mat, depth - 1);
 		reflectedColor = mat->mirrorRef.cwiseProduct(reflectedColor);
 		return BasicShading(ray, ret, mat) + reflectedColor;
@@ -207,7 +216,7 @@ Vector3f Scene::RecursiveShading(const Ray& ray, const ReturnVal& ret, Material*
 			insideColor = (1 - dc.fresnel) * insideColor;
 			insideColor = dc.beer.cwiseProduct(insideColor);
 
-			ShadingComponent sc = MirrorReflectance(ray, ret);
+			ShadingComponent sc = MirrorReflectance(ray, ret, mat);
 			Vector3f reflectedColor = RecursiveShading(sc.ray, sc.ret, sc.mat, depth - 1);
 			reflectedColor = dc.fresnel * reflectedColor;
 
@@ -219,7 +228,7 @@ Vector3f Scene::RecursiveShading(const Ray& ray, const ReturnVal& ret, Material*
 		{
 			if (dc.isTir)
 			{
-				ShadingComponent sc = MirrorReflectance(ray, ret);
+				ShadingComponent sc = MirrorReflectance(ray, ret, mat);
 				Vector3f internalReflection = RecursiveShading(sc.ray, sc.ret, sc.mat, depth - 1);
 				internalReflection = dc.beer.cwiseProduct(internalReflection);
 
@@ -231,7 +240,7 @@ Vector3f Scene::RecursiveShading(const Ray& ray, const ReturnVal& ret, Material*
 				Vector3f outsideColor = RecursiveShading(dc.ray, dc.ret, dc.mat, depth - 1);
 				outsideColor = (1 - dc.fresnel) * outsideColor;
 
-				ShadingComponent sc = MirrorReflectance(ray, ret);
+				ShadingComponent sc = MirrorReflectance(ray, ret, mat);
 				Vector3f reflectedColor = RecursiveShading(sc.ray, sc.ret, sc.mat, depth - 1);
 				reflectedColor = dc.fresnel * reflectedColor;
 				reflectedColor = dc.beer.cwiseProduct(reflectedColor);
@@ -245,7 +254,7 @@ Vector3f Scene::RecursiveShading(const Ray& ray, const ReturnVal& ret, Material*
 	else
 	{
 		float fresnel = ConductorFresnel(mat->refractionIndex, mat->absorptionIndex, ray, ret.normal);
-		ShadingComponent sc = MirrorReflectance(ray, ret);
+		ShadingComponent sc = MirrorReflectance(ray, ret, mat);
 		Vector3f reflectedColor = RecursiveShading(sc.ray, sc.ret, sc.mat, depth - 1);
 		reflectedColor = fresnel * reflectedColor;
 		reflectedColor = mat->mirrorRef.cwiseProduct(reflectedColor);
@@ -295,9 +304,7 @@ Vector3f Scene::BasicShading(const Ray& ray, const ReturnVal& ret, Material* mat
 	return rawColor;
 }
 
-// TODO: MAKE THIS FASTER.
-void
-Scene::ThreadedRendering(int threadIndex, Image& image, Camera* cam)
+void Scene::ThreadedRendering(int threadIndex, Image& image, Camera* cam)
 {
 	bool isMultiSample = cam->GetTotalSampleCount() > 1;
 	int threadCount = 8;
@@ -499,4 +506,7 @@ Scene::Scene(const char* xmlPath)
 	Parser::ParseLights(pRoot, ambientLight, lights);
 
 	std::cout << "Parsing complete." << std::endl;
+
+    mt = std::mt19937 (rd());
+    dist = std::uniform_real_distribution<float>(0.0, 1.0);
 }
