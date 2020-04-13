@@ -295,6 +295,6 @@ I always wanted our objects to look smoother. With multisampling I finally achie
 
 Another passion of mine with this project is to increase the performance. This was not the case before since the most complex scenes were being rendered in just a few seconds. However, now we have multisampling and it increases the render time significantly. Due to this, finding a way to decrease the render time is crucial and it is very fullfilling when I am successful.
 
-Yet another passion of mine is to play with the images. Here is the best (in my opinion) image I could get.
+Yet another passion of mine is to play with the images. Here is the best (in my opinion) image I could get. The light beam is actually a golden sphere. It has an absurd motion blur though.
 
 ![Sc](/assets/hw3-conclusion.jpg)
