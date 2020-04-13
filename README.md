@@ -239,7 +239,7 @@ In earlier versions, we assumed metal or mirror objects to have perfect surfaces
 
 ### 3.2. Resulting Images
 
-Here are some images created with the current version of the ray tracer. Sample count is also sahred since it is an important factor for the render time.
+Here are some images created with the current version of the ray tracer. Sample count is also shared since it is an important factor for the render time.
 
 ![Sc](/assets/hw3-simple.jpg)
 
@@ -295,6 +295,6 @@ I always wanted our objects to look smoother. With multisampling I finally achie
 
 Another passion of mine with this project is to increase the performance. This was not the case before since the most complex scenes were being rendered in just a few seconds. However, now we have multisampling and it increases the render time significantly. Due to this, finding a way to decrease the render time is crucial and it is very fullfilling when I am successful.
 
-Yet another passion of mine is to play with the images. I wanted to make a stray comet. The tail is actually a golden sphere. It has an absurd motion blur though. I hope you like it.
+Yet another passion of mine is to play with the images. I wanted to make a stray comet. I used two spheres to make it. One for the head, other for the tail. Tail has an absurd motion blur though. I hope you like it.
 
 ![Sc](/assets/hw3-conclusion.jpg)
