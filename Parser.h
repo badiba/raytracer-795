@@ -165,6 +165,15 @@ namespace Parser{
             sscanf(str, "%f %f %f", &materials[curr]->specularRef(0), &materials[curr]->specularRef(1),
                    &materials[curr]->specularRef(2));
 
+            materialElement = pMaterial->FirstChildElement("Roughness");
+            if (materialElement != nullptr){
+                eResult = materialElement->QueryFloatText(&materials[curr]->roughness);
+                materials[curr]->isRough = true;
+            }
+            else{
+                materials[curr]->isRough = false;
+            }
+
             // Parse mirrors.
             materialElement = pMaterial->FirstChildElement("MirrorReflectance");
             if (materialElement != nullptr)

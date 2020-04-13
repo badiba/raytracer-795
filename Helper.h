@@ -39,4 +39,10 @@ namespace ShapeHelpers
     int VectorFindMax(std::vector<Triangle> &indices);
 }
 
+namespace GeometryHelpers
+{
+    int GetAbsSmallestIndex(Eigen::Vector3f &vector);
+    Eigen::Vector3f GetOrthonormalUVector(const Eigen::Vector3f &vector);
+}
+
 #endif

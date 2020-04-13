@@ -307,3 +307,28 @@ namespace ShapeHelpers
         return maximum;
     }
 }
+
+namespace GeometryHelpers
+{
+    int GetAbsSmallestIndex(Eigen::Vector3f &vector){
+        float compZero = abs(vector[0]);
+        float compOne = abs(vector[1]);
+        float compTwo = abs(vector[2]);
+
+        if (compZero <= compOne && compZero <= compTwo){
+            return 0;
+        }
+        else if (compOne <= compZero && compOne <= compTwo){
+            return 1;
+        }
+
+        return 2;
+    }
+
+    Eigen::Vector3f GetOrthonormalUVector(const Eigen::Vector3f &vector){
+        Eigen::Vector3f nonLinear = vector;
+        nonLinear[GetAbsSmallestIndex(nonLinear)] = 1;
+
+        return (vector.cross(nonLinear)).normalized();
+    }
+}

@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <random>
 
 #include "Ray.h"
 #include "defs.h"
@@ -49,6 +50,10 @@ class Instance;
 class Scene
 {
 public:
+    std::random_device rd;
+    std::mt19937 mt;
+    std::uniform_real_distribution<float> dist;
+
 	int maxRecursionDepth;
 	float intTestEps;
 	float shadowRayEps;
@@ -89,7 +94,7 @@ private:
 
 	void ThreadedRendering(int threadIndex, Image& image, Camera* cam);
 
-	ShadingComponent MirrorReflectance(const Ray& ray, const ReturnVal& ret);
+	ShadingComponent MirrorReflectance(const Ray& ray, const ReturnVal& ret, Material* mat);
 
 	Eigen::Vector3f RecursiveShading(const Ray& ray, const ReturnVal& ret, Material* mat, int depth);
 

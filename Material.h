@@ -11,6 +11,7 @@ class Material
 public:
 	int id;
 	int phongExp = 0;
+	bool isRough;
 	MaterialType type;
 
 	Eigen::Vector3f ambientRef;
@@ -20,6 +21,7 @@ public:
 
 	float refractionIndex;
 	float absorptionIndex;
+	float roughness;
 	Eigen::Vector3f absorptionCoefficient;
 
 	Material(void);
