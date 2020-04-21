@@ -263,11 +263,11 @@ Here are some images created with the current version of the ray tracer. Sample 
 
 ![Sc](/assets/hw3-dragon.jpg)
 
-> Figure 3.2.6: Dragon Dynamic. Render time: 2m20,411s Sample count: 100
+> Figure 3.2.6: Dragon Dynamic. Render time: 21m47,896s Sample count: 100
 
 ![Sc](/assets/hw3-tap.jpg)
 
-> Figure 3.2.7: Tap. Render time: 21m47,896s Sample count: 100
+> Figure 3.2.7: Tap. Render time: 2m20,411s Sample count: 100
 
 ### 3.3. Bugs and fixes
 
