@@ -2,6 +2,7 @@
 #define _PARSER_H_
 
 #include "Instance.h"
+#include "Texture.h"
 
 using namespace tinyxml2;
 using namespace Eigen;
@@ -24,8 +25,10 @@ namespace Parser{
         }
 
         pElement = pRoot->FirstChildElement("BackgroundColor");
-        str = pElement->GetText();
-        sscanf(str, "%f %f %f", &backgroundColor(0), &backgroundColor(1), &backgroundColor(2));
+        if (pElement != nullptr){
+            str = pElement->GetText();
+            sscanf(str, "%f %f %f", &backgroundColor(0), &backgroundColor(1), &backgroundColor(2));
+        }
 
         pElement = pRoot->FirstChildElement("ShadowRayEpsilon");
         if (pElement != nullptr)
@@ -267,6 +270,136 @@ namespace Parser{
         }
     }
 
+    void ParseTextures(XMLNode* pRoot, const char* xmlPath, std::vector<Texture*> &textures){
+        std::vector<std::string> images;
+        const XMLAttribute* attr;
+        bool isImage = false;
+        int imageId = 0;
+        int normalizer = 255;
+        float noiseScale = 1;
+        float bumpFactor = 1;
+        DecalMode dm = NoDecal;
+        NoiseConversion nc = NCLinear;
+        Interpolation interpolation = NN;
+
+        std::string basePath;
+        std::string directPath;
+        int lastIndex = 0;
+        for (int i = 0; xmlPath[i] != '\0'; i++){
+            if (xmlPath[i] == '/'){
+                lastIndex = i;
+            }
+        }
+        for (int i = 0; i <= lastIndex; i++){
+            basePath += xmlPath[i];
+        }
+
+        XMLElement* pElement = pRoot->FirstChildElement("Textures");
+        if (pElement == nullptr){
+            return;
+        }
+
+        XMLElement* pImage = pElement->FirstChildElement("Images");
+        if (pImage != nullptr){
+            pImage = pElement->FirstChildElement("Images")->FirstChildElement("Image");
+            while (pImage != nullptr){
+                directPath = basePath + pImage->GetText();
+                images.push_back(directPath);
+                pImage = pImage->NextSiblingElement("Image");
+            }
+        }
+
+        XMLElement* textureElement;
+        XMLElement* pTextureMap = pElement->FirstChildElement("TextureMap");
+        while(pTextureMap != nullptr){
+            attr = pTextureMap->FirstAttribute();
+            while (attr != nullptr){
+                if (std::strncmp(attr->Name(), "type", 4) != 0)
+                {
+                    attr = attr->Next();
+                    continue;
+                }
+
+                isImage = std::strncmp(attr->Value(), "image", 5) == 0;
+                break;
+            }
+
+            textureElement = pTextureMap->FirstChildElement("ImageId");
+            if (textureElement != nullptr)
+            {
+                textureElement->QueryIntText(&imageId);
+            }
+            textureElement = pTextureMap->FirstChildElement("DecalMode");
+            if (textureElement != nullptr)
+            {
+                if (std::strncmp(textureElement->GetText(), "blend_kd", 8) == 0){
+                    dm = BlendKd;
+                }
+                else if (std::strncmp(textureElement->GetText(), "replace_kd", 10) == 0)
+                {
+                    dm = ReplaceKd;
+                }
+                else if (std::strncmp(textureElement->GetText(), "replace_all", 11) == 0){
+                    dm = ReplaceAll;
+                }
+                else if (std::strncmp(textureElement->GetText(), "bump_normal", 11) == 0){
+                    dm = BumpNormal;
+                }
+                else if (std::strncmp(textureElement->GetText(), "replace_normal", 14) == 0){
+                    dm = ReplaceNormal;
+                }
+                else if (std::strncmp(textureElement->GetText(), "replace_background", 18) == 0){
+                    dm = ReplaceBackground;
+                }
+            }
+            textureElement = pTextureMap->FirstChildElement("NoiseConversion");
+            if (textureElement != nullptr)
+            {
+                if (std::strncmp(textureElement->GetText(), "absval", 6) == 0){
+                    nc = Absval;
+                }
+                else
+                {
+                    nc = NCLinear;
+                }
+            }
+            textureElement = pTextureMap->FirstChildElement("Interpolation");
+            if (textureElement != nullptr)
+            {
+                if (std::strncmp(textureElement->GetText(), "nearest", 7) == 0){
+                    interpolation = NN;
+                }
+                else if (std::strncmp(textureElement->GetText(), "bilinear", 8) == 0)
+                {
+                    interpolation = Bilinear;
+                }
+            }
+            textureElement = pTextureMap->FirstChildElement("Normalizer");
+            if (textureElement != nullptr)
+            {
+                textureElement->QueryIntText(&normalizer);
+            }
+            textureElement = pTextureMap->FirstChildElement("NoiseScale");
+            if (textureElement != nullptr)
+            {
+                textureElement->QueryFloatText(&noiseScale);
+            }
+            textureElement = pTextureMap->FirstChildElement("BumpFactor");
+            if (textureElement != nullptr)
+            {
+                textureElement->QueryFloatText(&bumpFactor);
+            }
+
+            if (isImage){
+                textures.push_back(new Texture(images[imageId-1], dm, interpolation, ImageTexture, normalizer, bumpFactor));
+            }
+            else{
+                textures.push_back(new Texture(dm, interpolation, PerlinTexture, nc, normalizer, noiseScale, bumpFactor));
+            }
+            pTextureMap = pTextureMap->NextSiblingElement("TextureMap");
+        }
+    }
+
     void ParseTransformations(XMLNode* pRoot, std::vector<Transformation*> &translations,
                               std::vector<Transformation*> &scalings, std::vector<Transformation*> &rotations){
         const char* str;
@@ -362,6 +495,46 @@ namespace Parser{
         }
     }
 
+    void ParseTextureCoordinates(XMLNode* pRoot, std::vector<Vector2f> &textureCoordinates){
+        const char* str;
+        XMLError eResult;
+
+        XMLElement* pElement = pRoot->FirstChildElement("TexCoordData");
+        if (pElement == nullptr){
+            return;
+        }
+        int cursor = 0;
+        Vector2f tmpPoint;
+        str = pElement->GetText();
+        while (str[cursor] == ' ' || str[cursor] == '\t' || str[cursor] == '\n')
+        {
+            cursor++;
+        }
+        while (str[cursor] != '\0')
+        {
+            for (int cnt = 0; cnt < 2; cnt++)
+            {
+                if (cnt == 0)
+                {
+                    tmpPoint(0) = atof(str + cursor);
+                }
+                else
+                {
+                    tmpPoint(1) = atof(str + cursor);
+                }
+                while (str[cursor] != ' ' && str[cursor] != '\t' && str[cursor] != '\n')
+                {
+                    cursor++;
+                }
+                while (str[cursor] == ' ' || str[cursor] == '\t' || str[cursor] == '\n')
+                {
+                    cursor++;
+                }
+            }
+            textureCoordinates.push_back(tmpPoint);
+        }
+    }
+
     void ParseObjectTransformations(const char* str, std::vector<Transformation*> &transformations){
         int transformationIndex = 0;
         int cursor = 0;
@@ -419,6 +592,30 @@ namespace Parser{
                 ParseObjectTransformations(str, transformations);
             }
 
+            // Parse texture id
+            std::vector<int> textures;
+            int textureOne, textureTwo;
+            objElement = pObject->FirstChildElement("Textures");
+            if (objElement != nullptr){
+                str = objElement->GetText();
+                bool isTwo = false;
+                for (int i = 0; str[i] != '\0'; i++){
+                    if (str[i] == ' '){
+                        isTwo = true;
+                    }
+                }
+
+                if (isTwo){
+                    sscanf(str, "%d %d", &textureOne, &textureTwo);
+                    textures.push_back(textureOne);
+                    textures.push_back(textureTwo);
+                }
+                else{
+                    sscanf(str, "%d", &textureOne);
+                    textures.push_back(textureOne);
+                }
+            }
+
             // Parse motion blur.
             objElement = pObject->FirstChildElement("MotionBlur");
             if (objElement != nullptr){
@@ -433,6 +630,7 @@ namespace Parser{
             eResult = objElement->QueryFloatText(&R);
 
             objects.push_back(new Sphere(id, matIndex, cIndex, R, transformations, blurTransformation, isBlur));
+            objects[objects.size()-1]->textures = textures;
 
             pObject = pObject->NextSiblingElement("Sphere");
         }
@@ -462,6 +660,30 @@ namespace Parser{
                 ParseObjectTransformations(str, transformations);
             }
 
+            // Parse texture id
+            std::vector<int> textures;
+            int textureOne, textureTwo;
+            objElement = pObject->FirstChildElement("Textures");
+            if (objElement != nullptr){
+                str = objElement->GetText();
+                bool isTwo = false;
+                for (int i = 0; str[i] != '\0'; i++){
+                    if (str[i] == ' '){
+                        isTwo = true;
+                    }
+                }
+
+                if (isTwo){
+                    sscanf(str, "%d %d", &textureOne, &textureTwo);
+                    textures.push_back(textureOne);
+                    textures.push_back(textureTwo);
+                }
+                else{
+                    sscanf(str, "%d", &textureOne);
+                    textures.push_back(textureOne);
+                }
+            }
+
             // Parse motion blur.
             objElement = pObject->FirstChildElement("MotionBlur");
             if (objElement != nullptr){
@@ -475,6 +697,7 @@ namespace Parser{
             sscanf(str, "%d %d %d", &p1Index, &p2Index, &p3Index);
 
             objects.push_back(new Triangle(id, matIndex, p1Index, p2Index, p3Index, transformations, blurTransformation, isBlur));
+            objects[objects.size()-1]->textures = textures;
 
             pObject = pObject->NextSiblingElement("Triangle");
         }
@@ -485,13 +708,14 @@ namespace Parser{
         pObject = pElement->FirstChildElement("Mesh");
         while (pObject != nullptr)
         {
-            int id, matIndex, p1Index, p2Index, p3Index, cursor, vertexOffset;
+            int id, matIndex, p1Index, p2Index, p3Index, cursor, vertexOffset, textureOffset;
             cursor = 0;
             vertexOffset = 0;
+            textureOffset = 0;
             bool isBlur = false;
 
             glm::vec3 blurTransformation = {0,0,0};
-            std::vector<Triangle> faces;
+            std::vector<Triangle*> faces;
             std::vector<Transformation*> transformations;
 
             eResult = pObject->QueryIntAttribute("id", &id);
@@ -522,6 +746,30 @@ namespace Parser{
             if (objElement != nullptr){
                 str = objElement->GetText();
                 ParseObjectTransformations(str, transformations);
+            }
+
+            // Parse texture id
+            std::vector<int> textures;
+            int textureOne, textureTwo;
+            objElement = pObject->FirstChildElement("Textures");
+            if (objElement != nullptr){
+                str = objElement->GetText();
+                bool isTwo = false;
+                for (int i = 0; str[i] != '\0'; i++){
+                    if (str[i] == ' '){
+                        isTwo = true;
+                    }
+                }
+
+                if (isTwo){
+                    sscanf(str, "%d %d", &textureOne, &textureTwo);
+                    textures.push_back(textureOne);
+                    textures.push_back(textureTwo);
+                }
+                else{
+                    sscanf(str, "%d", &textureOne);
+                    textures.push_back(textureOne);
+                }
             }
 
             // Parse motion blur.
@@ -574,18 +822,18 @@ namespace Parser{
                         p1Index = fInd[i][0] + vertexCount;
                         p2Index = fInd[i][1] + vertexCount;
                         p3Index = fInd[i][2] + vertexCount;
-                        faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index, isSmooth)));
+                        faces.push_back(new Triangle(-1, matIndex, p1Index, p2Index, p3Index, isSmooth));
 
                         p1Index = fInd[i][2] + vertexCount;
                         p2Index = fInd[i][3] + vertexCount;
                         p3Index = fInd[i][0] + vertexCount;
-                        faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index, isSmooth)));
+                        faces.push_back(new Triangle(-1, matIndex, p1Index, p2Index, p3Index, isSmooth));
                     }
                     else{
                         p1Index = fInd[i][0] + vertexCount;
                         p2Index = fInd[i][1] + vertexCount;
                         p3Index = fInd[i][2] + vertexCount;
-                        faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index, isSmooth)));
+                        faces.push_back(new Triangle(-1, matIndex, p1Index, p2Index, p3Index, isSmooth));
                     }
                 }
 
@@ -601,6 +849,8 @@ namespace Parser{
                 }
 
                 objects.push_back(new Mesh(id, matIndex, faces, transformations, blurTransformation, isBlur, isSmooth));
+                objects[objects.size()-1]->textures = textures;
+                objects[objects.size()-1]->textureOffset = textureOffset - vertexOffset;
 
                 pObject = pObject->NextSiblingElement("Mesh");
                 continue;
@@ -609,6 +859,7 @@ namespace Parser{
 
             cursor = 0;
             objElement->QueryIntAttribute("vertexOffset", &vertexOffset);
+            objElement->QueryIntAttribute("textureOffset", &textureOffset);
             str = objElement->GetText();
             while (str[cursor] == ' ' || str[cursor] == '\t' || str[cursor] == '\n')
             {
@@ -639,10 +890,12 @@ namespace Parser{
                         cursor++;
                     }
                 }
-                faces.push_back(*(new Triangle(-1, matIndex, p1Index, p2Index, p3Index, isSmooth)));
+                faces.push_back(new Triangle(-1, matIndex, p1Index, p2Index, p3Index, isSmooth));
             }
 
             objects.push_back(new Mesh(id, matIndex, faces, transformations, blurTransformation, isBlur, isSmooth));
+            objects[objects.size()-1]->textures = textures;
+            objects[objects.size()-1]->textureOffset = textureOffset - vertexOffset;
 
             pObject = pObject->NextSiblingElement("Mesh");
         }

@@ -55,6 +55,8 @@ BVH::BVH(Shape* object){
     bvhMaxRecursionDepth = 30;
 
     object->FillPrimitives(primitives);
+    textures = object->textures;
+    textureOffset = object->textureOffset;
 
     ConstructionHelper(0, primitives.size(), 0, root, 0);
 }
@@ -156,7 +158,7 @@ ReturnVal BVH::FindIntersectionWithBVH(const Ray& ray, BTNode<BBox>* node)
 		// Check intersection of the ray with all objects in the bounding box.
 		for (int i = startIndex; i < endIndex; i++)
 		{
-			ret = primitives[i]->intersect(ray);
+			ret = primitives[i]->bvhIntersect(ray, textures, textureOffset);
 			if (ret.full)
 			{
 				// Save the nearest intersected object.

@@ -19,8 +19,20 @@ Vector3f Ray::getPoint(float t) const
 }
 
 float Ray::gett(const Eigen::Vector3f &p) const {
-    float x_distance = p[0] - origin[0];
-    return x_distance / direction[0];
+    float tValue = (p[0] - origin[0]) / direction[0];
+    if (tValue == tValue){
+        return tValue;
+    }
+
+    tValue = (p[1] - origin[1]) / direction[1];
+    if (tValue == tValue){
+        return tValue;
+    }
+
+    tValue = (p[2] - origin[2]) / direction[2];
+    if (tValue == tValue){
+        return tValue;
+    }
 }
 
 void Ray::SetTime(float time) {

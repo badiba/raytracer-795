@@ -8,6 +8,7 @@
 
 #include "defs.h"
 #include "Transformation.h"
+#include "Texture.h"
 
 // Forward declarations to avoid cyclic references
 class BVH;
@@ -16,7 +17,9 @@ class Shape
 {
 public:
     int id;
+    int textureOffset;
     int matIndex;
+    std::vector<int> textures;
     BVH *bvh;
 
     bool isBlur;
@@ -28,8 +31,8 @@ public:
     glm::mat4* inverseTranspose_tMatrix;
     std::vector<Transformation*> objTransformations;
 
-    virtual ReturnVal intersect(
-            const Ray& ray) const = 0;
+    virtual ReturnVal bvhIntersect(const Ray& ray, std::vector<int>& txt, int txtOffset) const = 0;
+    virtual ReturnVal intersect(const Ray& ray) const = 0;
     virtual void FillPrimitives(std::vector<Shape*> &primitives) const = 0;
     virtual BBox GetBoundingBox() const = 0;
     virtual void ComputeSmoothNormals();
@@ -52,12 +55,13 @@ public:
             glm::vec3 &blurTransformation, bool isBlur);
     Sphere(int id, int matIndex, int cIndex, float R);
 
-    ReturnVal intersect(
-            const Ray& ray) const;
+    ReturnVal bvhIntersect(const Ray& ray, std::vector<int>& txt, int txtOffset) const;
+    ReturnVal intersect(const Ray& ray) const;
     void FillPrimitives(std::vector<Shape*> &primitives) const;
 	BBox GetBoundingBox() const;
     void ComputeSmoothNormals();
 	Eigen::Vector3f GetCenter() const;
+    ReturnVal TextureComputation(ReturnVal& ret, std::vector<int>& txt) const;
 
 private:
     int cIndex;
@@ -76,12 +80,13 @@ public:
     int GetIndexTwo();
     int GetIndexThree();
 
-    ReturnVal intersect(
-            const Ray& ray) const;
+    ReturnVal bvhIntersect(const Ray& ray, std::vector<int>& txt, int txtOffset) const;
+    ReturnVal intersect(const Ray& ray) const;
 	void FillPrimitives(std::vector<Shape*> &primitives) const;
 	BBox GetBoundingBox() const;
     void ComputeSmoothNormals();
 	Eigen::Vector3f GetCenter() const;
+	ReturnVal TextureComputation(ReturnVal& ret, std::vector<int>& txt, int txtOffset, Eigen::Vector3f& e1, Eigen::Vector3f& e2, float beta, float gamma) const;
 
 private:
     int p1Index;
@@ -94,18 +99,18 @@ class Mesh : public Shape
 public:
     Mesh(void);
 
-    Mesh(int id, int matIndex, const std::vector<Triangle>& faces, const std::vector<Transformation*>& transformations,
+    Mesh(int id, int matIndex, const std::vector<Triangle*>& faces, const std::vector<Transformation*>& transformations,
          glm::vec3 &blurTransformation, bool isBlur, bool isSmooth);
 
-    ReturnVal intersect(
-            const Ray& ray) const;
+    ReturnVal bvhIntersect(const Ray& ray, std::vector<int>& txt, int txtOffset) const;
+    ReturnVal intersect(const Ray& ray) const;
 	void FillPrimitives(std::vector<Shape*> &primitives) const;
 	BBox GetBoundingBox() const;
     void ComputeSmoothNormals();
 	Eigen::Vector3f GetCenter() const;
 
 private:
-    std::vector<Triangle> faces;
+    std::vector<Triangle*> faces;
 };
 
 #endif

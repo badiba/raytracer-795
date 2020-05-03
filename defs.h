@@ -5,12 +5,20 @@
 
 class Scene;
 
+enum DecalMode{ReplaceKd, BlendKd, BumpNormal, ReplaceNormal, ReplaceAll, ReplaceBackground, NoDecal};
+enum Interpolation{NN, Bilinear};
+enum TextureType{ImageTexture, PerlinTexture};
+enum NoiseConversion{Absval, NCLinear, NoConversion};
+
 typedef struct ReturnVal
 {
     Eigen::Vector3f point;
     Eigen::Vector3f normal;
     bool full = false;
     int matIndex;
+    DecalMode dm;
+    Eigen::Vector3f textureColor;
+    float textureNormalizer;
 } ReturnVal;
 
 typedef struct BBox

@@ -41,9 +41,13 @@ class PointLight;
 
 class Material;
 
+class Texture;
+
 class Shape;
 
 class BVH;
+
+class Perlin;
 
 class Instance;
 
@@ -55,10 +59,12 @@ public:
     std::uniform_real_distribution<float> dist;
 
 	int maxRecursionDepth;
+	int backgroundTexture;
 	float intTestEps;
 	float shadowRayEps;
 	Eigen::Vector3f backgroundColor;
 	Eigen::Vector3f ambientLight;
+    Perlin* perlin;
 
 	std::vector<Camera*> cameras;
 	std::vector<PointLight*> lights;
@@ -67,9 +73,11 @@ public:
     std::vector<Transformation*> scalings;
     std::vector<Transformation*> rotations;
 	std::vector<Eigen::Vector3f> vertices;
+	std::vector<Eigen::Vector2f> textureCoordinates;
 	std::vector<Shape*> objects;
 	std::vector<Instance*> instances;
 	std::vector<Eigen::Vector3f> vertexNormals;
+	std::vector<Texture*> textures;
 
 	//BVH *bvh;
 
@@ -113,6 +121,8 @@ private:
     Color SingleSample(int row, int col, Camera* cam);
 
 	Color RawColorToColor(Eigen::Vector3f color);
+
+    Eigen::Vector3f GetBackgroundColor(int row, int col, Camera* cam);
 };
 
 #endif

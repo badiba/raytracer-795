@@ -13,6 +13,7 @@
 #include "happly.h"
 #include "Parser.h"
 #include "Helper.h"
+#include "Perlin.h"
 #include "glm/gtx/string_cast.hpp"
 
 using namespace Eigen;
@@ -59,7 +60,17 @@ Vector3f Scene::diffuse(ReturnVal ret, Material* mat, Ray ray, PointLight* light
 	float nh = ret.normal.dot(wi);
 	float alpha = std::max(0.0f, nh);
 
-	Vector3f diffuseColor = (light->computeLightContribution(ret.point).cwiseProduct(mat->diffuseRef * alpha));
+	Vector3f diffuseColor;
+	if (ret.dm == ReplaceKd){
+        diffuseColor = (light->computeLightContribution(ret.point).cwiseProduct((ret.textureColor / ret.textureNormalizer) * alpha));
+	}
+	else if (ret.dm == BlendKd){
+	    Vector3f blended = (mat->diffuseRef + (ret.textureColor / ret.textureNormalizer)) * 0.5f;
+        diffuseColor = (light->computeLightContribution(ret.point).cwiseProduct(blended * alpha));
+	}
+	else{
+        diffuseColor = (light->computeLightContribution(ret.point).cwiseProduct(mat->diffuseRef * alpha));
+	}
 	return diffuseColor;
 }
 
@@ -273,6 +284,10 @@ Vector3f Scene::NanCheck(Vector3f checkVector){
 
 Eigen::Vector3f Scene::Shading(const Ray& ray, const ReturnVal& ret, Material* mat)
 {
+    if (ret.dm == ReplaceAll){
+        return ret.textureColor.cwiseMin(255);
+    }
+
 	// Create a new rawColor (not bounded to 255).
 	Vector3f color = RecursiveShading(ray, ret, mat, maxRecursionDepth);
 
@@ -331,6 +346,9 @@ void Scene::ThreadedRendering(int threadIndex, Image& image, Camera* cam)
 
 void Scene::renderScene(void)
 {
+    // Prepare perlin structure.
+    perlin = new Perlin();
+
     // Compute object transformation matrices.
     Transforming::ComputeObjectTransformations(objects, instances, translations, scalings, rotations);
 
@@ -370,30 +388,15 @@ void Scene::renderScene(void)
 		height = cam->imgPlane.ny;
 		Image image(width, height);
 
-		int offset_height = height / 8;
-		int heightStart = 0;
-		int heightEnd = offset_height;
+		//ThreadedRendering(0, std::ref(image), cam);
+
 		std::thread threadObj1(&Scene::ThreadedRendering, this, 0, std::ref(image), cam);
-		heightStart += offset_height;
-		heightEnd += offset_height;
 		std::thread threadObj2(&Scene::ThreadedRendering, this, 1, std::ref(image), cam);
-		heightStart += offset_height;
-		heightEnd += offset_height;
 		std::thread threadObj3(&Scene::ThreadedRendering, this, 2, std::ref(image), cam);
-		heightStart += offset_height;
-		heightEnd += offset_height;
 		std::thread threadObj4(&Scene::ThreadedRendering, this, 3, std::ref(image), cam);
-		heightStart += offset_height;
-		heightEnd += offset_height;
 		std::thread threadObj5(&Scene::ThreadedRendering, this, 4, std::ref(image), cam);
-		heightStart += offset_height;
-		heightEnd += offset_height;
 		std::thread threadObj6(&Scene::ThreadedRendering, this, 5, std::ref(image), cam);
-		heightStart += offset_height;
-		heightEnd += offset_height;
 		std::thread threadObj7(&Scene::ThreadedRendering, this, 6, std::ref(image), cam);
-		heightStart += offset_height;
-		heightEnd = height;
 		std::thread threadObj8(&Scene::ThreadedRendering, this, 7, std::ref(image), cam);
 
 		threadObj1.join();
@@ -404,6 +407,8 @@ void Scene::renderScene(void)
 		threadObj6.join();
 		threadObj7.join();
 		threadObj8.join();
+
+		// DON'T FORGET TO CHANGE THREAD COUNT //
 
 		// Save image.
 		image.saveImage(cam->imageName);
@@ -425,7 +430,7 @@ Color Scene::SingleSample(int row, int col, Camera* cam){
 
     else
     {
-        color = backgroundColor;
+        color = GetBackgroundColor(row, col, cam);
     }
 
     return RawColorToColor(color);
@@ -450,12 +455,23 @@ Color Scene::MultiSample(int col, int row, Camera* cam){
             // Else paint with background color.
         else
         {
-            color += backgroundColor;
+            color += GetBackgroundColor(row, col, cam);
         }
     }
 
     color = color / sampleCount;
     return RawColorToColor(color);
+}
+
+Vector3f Scene::GetBackgroundColor(int row, int col, Camera* cam){
+    if (backgroundTexture == -1){
+        return backgroundColor;
+    }
+
+    float u = ((float) col) / cam->imgPlane.nx;
+    float v = ((float) row) / cam->imgPlane.ny;
+
+    return textures[backgroundTexture]->GetColorAtCoordinates(u, v);
 }
 
 Color Scene::RawColorToColor(Eigen::Vector3f color){
@@ -493,11 +509,17 @@ Scene::Scene(const char* xmlPath)
     std::cout << "Parsing materials." << std::endl;
 	Parser::ParseMaterials(pRoot, materials);
 
+	std::cout << "Parsing textures." << std::endl;
+	Parser::ParseTextures(pRoot, xmlPath, textures);
+
     std::cout << "Parsing transformations." << std::endl;
     Parser::ParseTransformations(pRoot, translations, scalings, rotations);
 
     std::cout << "Parsing vertices." << std::endl;
     Parser::ParseVertices(pRoot, vertices);
+
+    std::cout << "Parsing texture coordinates." << std::endl;
+    Parser::ParseTextureCoordinates(pRoot, textureCoordinates);
 
     std::cout << "Parsing objects." << std::endl;
 	Parser::ParseObjects(pRoot, xmlPath, objects, instances, vertices);
@@ -506,6 +528,14 @@ Scene::Scene(const char* xmlPath)
 	Parser::ParseLights(pRoot, ambientLight, lights);
 
 	std::cout << "Parsing complete." << std::endl;
+
+	backgroundTexture = -1;
+	int textureSize = textures.size();
+	for (int i = 0; i < textureSize; i++){
+	    if (textures[i]->decalMode == ReplaceBackground){
+	        backgroundTexture = i;
+	    }
+	}
 
     mt = std::mt19937 (rd());
     dist = std::uniform_real_distribution<float>(0.0, 1.0);

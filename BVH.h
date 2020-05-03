@@ -16,6 +16,8 @@ public:
 	BVH(Shape* object);
 
 private:
+    std::vector<int> textures;
+    int textureOffset;
 	std::vector<Shape *> primitives;
 	BTNode<BBox> *root;
 	int bvhMaxRecursionDepth;
