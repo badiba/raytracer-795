@@ -341,3 +341,6 @@ The last issue was not about textures. I had a bug which stayed alive through th
 
 ### 4.4. Conclusion
 
+In the earlier versions, we had important advancements. I especially liked the last version where I implemented the multisampling and distributed ray tracing. But I have to say that I liked this version as much as the last one. Putting the textures on our objects bring life to the scene. I really liked how different it feels after implementing this version. Moreover, as a space enthusiast I found out that Nasa has some pretty cool images for texture and bump mapping of celestial bodies such as the Moon, Mars, etc. I immediately downloaded them and used to get these results.
+
+After getting the result of the Moon scene, I can say that we need directional light to better simulate the Moon object. At this point I used point light. I positioned the light at a very long distance from the obejct and I increased its intensity. Obviously I also set the values of ambient light to zero. However, sunlight would be better simulated with a directional light. I am looking forward to add different types of light sources including directional light in our next version of the ray tracer.
