@@ -309,6 +309,8 @@ Instead of using an image file to make texture computations, we can use Perlin N
 
 ### 4.1. Added features
 
+The discussions below are based on image textures but they can also be applied with the Perlin texture. This is also stated in the 4.1.e section.
+
 ### 4.1.a. Texture Mapping
 
 In texture mapping, we have several options. We can directly assign the color obtained from the image file to the surface. This method completely disables shading computations. Therefore, the result is not realistic. Second option is to use the color from the image file to replace the diffuse reflectance coefficient. This method is actually much better than the former one in terms of realism since we will be making shading computations. Third option is to use the value from the image file and the diffuse reflectance coefficient value together. This method is sometimes preferred. It gives a feeling of a painting over an already colored surface.
@@ -319,7 +321,7 @@ Until now, we were assigning a single color value to our background. Since we ar
 
 ### 4.1.c. Normal Mapping
 
-After getting the color value from an image file, we are not limited to use it to determine the color of our surface. We can also use it to change our normal at the intersection point. By doing so, we can obtain hollows and roughness on a surface. For example, if we want to have the Moon in our scene, using a sphere object would make sense. Then we should do texture mapping which means we are going to need an image file. But this is not enough since we will put the colors from the image file directly on the surface of a sphere. Which means the holes on the Moon will not be on our sphere object. It will look like a painting on a perfectly smooth sphere. To avoid this and improve the realism we need to change the normal of the surface whenever we have an intersection. Changing the normal will trick the eye that there is a hole on the surface although it is still perfectly smooth. The reason behind this is that normals are used to make shading computations and changing the normal will change what you are seeing. Details of this reason are intentionally avoided here. For more information see [Shading](https://en.wikipedia.org/wiki/Shading) 
+After getting the color value from an image file, we are not limited to use it to determine the color of our surface. We can also use it to change our normal at the intersection point. By doing so, we can obtain hollows and roughness on a surface. For example, if we want to have the Moon in our scene, using a sphere object would make sense. Then we should do texture mapping which means we are going to need an image file. But this is not enough since we will put the colors from the image file directly on the surface of a sphere. Which means the holes on the Moon will not be on our sphere object. It will look like a painting on a perfectly smooth sphere. To avoid this and improve the realism we need to change the normal of the surface whenever we have an intersection. Changing the normal will trick the eye that there is a hole on the surface although it is still perfectly smooth. The reason behind this is that normals are used to make shading computations and changing the normal will change what you are seeing. Details of this reason are intentionally avoided here. For more information see [Shading](https://en.wikipedia.org/wiki/Shading).
 
 ### 4.1.d. Bump Mapping
 
