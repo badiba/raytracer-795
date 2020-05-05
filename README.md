@@ -341,6 +341,78 @@ All of the above discussion can be made with using an image file as a texture bu
 
 ### 4.2. Resulting Images
 
+![Sc](/assets/hw4-bump_mapping_transformed)
+
+> Figure 4.2.1: bump_mapping_transformed scene. Render time: 0m0,807s Sample Count: 1
+
+![Sc](/assets/hw4-cube_cushion)
+
+> Figure 4.2.2: cube_cushion scene. Render time: 0m0,346s Sample Count: 1
+
+![Sc](/assets/hw4-cube_perlin)
+
+> Figure 4.2.3: cube_perlin scene. Render time: 0m0,950s Sample Count: 1
+
+![Sc](/assets/hw4-cube_perlin_bump)
+
+> Figure 4.2.4: cube_perlin_bump scene. Render time: 0m3,030s Sample Count: 1
+
+![Sc](/assets/hw4-cube_wall)
+
+> Figure 4.2.5: cube_wall scene. Render time: 0m0,324s Sample Count: 1
+
+![Sc](/assets/hw4-cube_wall_normal)
+
+> Figure 4.2.6: cube_wall_normal scene. Render time: 0m0,365s Sample Count: 1
+
+![Sc](/assets/hw4-cube_waves)
+
+> Figure 4.2.7: cube_waves scene. Render time: 0m0,336s Sample Count: 1
+
+![Sc](/assets/hw4-ellipsoids_texture)
+
+> Figure 4.2.8: ellipsoids_texture scene. Render time: 0m0,346s Sample Count: 1
+
+![Sc](/assets/hw4-galactica_dynamic)
+
+> Figure 4.2.9: galactica_dynamic scene. Render time: 1m42,265s Sample Count: 100
+
+![Sc](/assets/hw4-galactica_static)
+
+> Figure 4.2.10: galactica_static scene. Render time: 0m1,868s Sample Count: 1
+
+![Sc](/assets/hw4-killeroo_bump_walls)
+
+> Figure 4.2.11: killeroo_bump_walls scene. Render time: 0m16,250s Sample Count: 16
+
+![Sc](/assets/hw4-sphere_nearest_bilinear)
+
+> Figure 4.2.12: sphere_nearest_bilinear scene. Render time: 0m0,312s Sample Count: 1
+
+![Sc](/assets/hw4-sphere_nobump_bump)
+
+> Figure 4.2.13: sphere_nobump_bump scene. Render time: 0m6,994s Sample Count: 1
+
+![Sc](/assets/hw4-sphere_nobump_justbump)
+
+> Figure 4.2.14: sphere_nobump_justbump scene. Render time: 0m0,240s Sample Count: 1
+
+![Sc](/assets/hw4-sphere_normal)
+
+> Figure 4.2.15: sphere_normal scene. Render time: 0m11,001s Sample Count: 100
+
+![Sc](/assets/hw4-sphere_perlin)
+
+> Figure 4.2.16: sphere_perlin scene. Render time: 0m0,764s Sample Count: 1
+
+![Sc](/assets/hw4-sphere_perlin_bump)
+
+> Figure 4.2.17: sphere_perlin_bump scene. Render time: 0m3,746s Sample Count: 1
+
+![Sc](/assets/hw4-sphere_perlin_scale)
+
+> Figure 4.2.18: sphere_perlin_scale scene. Render time: 0m1,250s Sample Count: 1
+
 ### 4.3. Bugs and fixes
 
 First problem I encountered was about the bump mapping. To find the perturbed normal, first we need to compute the tangent and bitangent vectors at the intersection point. I thought I should normalize these two vectors since I thought the normal, tangent and bitangent coordinate system should be orthonormal. However, when I normalize these vectors I lose the scaling information and different surfaces will end up having the same size of vectors giving me the wrong result. For example bigger spheres should have larger size of tangent and bitangent vectors. Here is an example of the wrong implementation.
