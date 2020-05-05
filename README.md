@@ -341,75 +341,75 @@ All of the above discussion can be made with using an image file as a texture bu
 
 ### 4.2. Resulting Images
 
-![Sc](/assets/hw4-bump_mapping_transformed)
+![Sc](/assets/hw4-bump_mapping_transformed.jpg)
 
 > Figure 4.2.1: bump_mapping_transformed scene. Render time: 0m0,807s Sample Count: 1
 
-![Sc](/assets/hw4-cube_cushion)
+![Sc](/assets/hw4-cube_cushion.jpg)
 
 > Figure 4.2.2: cube_cushion scene. Render time: 0m0,346s Sample Count: 1
 
-![Sc](/assets/hw4-cube_perlin)
+![Sc](/assets/hw4-cube_perlin.jpg)
 
 > Figure 4.2.3: cube_perlin scene. Render time: 0m0,950s Sample Count: 1
 
-![Sc](/assets/hw4-cube_perlin_bump)
+![Sc](/assets/hw4-cube_perlin_bump.jpg)
 
 > Figure 4.2.4: cube_perlin_bump scene. Render time: 0m3,030s Sample Count: 1
 
-![Sc](/assets/hw4-cube_wall)
+![Sc](/assets/hw4-cube_wall.jpg)
 
 > Figure 4.2.5: cube_wall scene. Render time: 0m0,324s Sample Count: 1
 
-![Sc](/assets/hw4-cube_wall_normal)
+![Sc](/assets/hw4-cube_wall_normal.jpg)
 
 > Figure 4.2.6: cube_wall_normal scene. Render time: 0m0,365s Sample Count: 1
 
-![Sc](/assets/hw4-cube_waves)
+![Sc](/assets/hw4-cube_waves.jpg)
 
 > Figure 4.2.7: cube_waves scene. Render time: 0m0,336s Sample Count: 1
 
-![Sc](/assets/hw4-ellipsoids_texture)
+![Sc](/assets/hw4-ellipsoids_texture.jpg)
 
 > Figure 4.2.8: ellipsoids_texture scene. Render time: 0m0,346s Sample Count: 1
 
-![Sc](/assets/hw4-galactica_dynamic)
+![Sc](/assets/hw4-galactica_dynamic.jpg)
 
 > Figure 4.2.9: galactica_dynamic scene. Render time: 1m42,265s Sample Count: 100
 
-![Sc](/assets/hw4-galactica_static)
+![Sc](/assets/hw4-galactica_static.jpg)
 
 > Figure 4.2.10: galactica_static scene. Render time: 0m1,868s Sample Count: 1
 
-![Sc](/assets/hw4-killeroo_bump_walls)
+![Sc](/assets/hw4-killeroo_bump_walls.jpg)
 
 > Figure 4.2.11: killeroo_bump_walls scene. Render time: 0m16,250s Sample Count: 16
 
-![Sc](/assets/hw4-sphere_nearest_bilinear)
+![Sc](/assets/hw4-sphere_nearest_bilinear.jpg)
 
 > Figure 4.2.12: sphere_nearest_bilinear scene. Render time: 0m0,312s Sample Count: 1
 
-![Sc](/assets/hw4-sphere_nobump_bump)
+![Sc](/assets/hw4-sphere_nobump_bump.jpg)
 
 > Figure 4.2.13: sphere_nobump_bump scene. Render time: 0m6,994s Sample Count: 1
 
-![Sc](/assets/hw4-sphere_nobump_justbump)
+![Sc](/assets/hw4-sphere_nobump_justbump.jpg)
 
 > Figure 4.2.14: sphere_nobump_justbump scene. Render time: 0m0,240s Sample Count: 1
 
-![Sc](/assets/hw4-sphere_normal)
+![Sc](/assets/hw4-sphere_normal.jpg)
 
 > Figure 4.2.15: sphere_normal scene. Render time: 0m11,001s Sample Count: 100
 
-![Sc](/assets/hw4-sphere_perlin)
+![Sc](/assets/hw4-sphere_perlin.jpg)
 
 > Figure 4.2.16: sphere_perlin scene. Render time: 0m0,764s Sample Count: 1
 
-![Sc](/assets/hw4-sphere_perlin_bump)
+![Sc](/assets/hw4-sphere_perlin_bump.jpg)
 
 > Figure 4.2.17: sphere_perlin_bump scene. Render time: 0m3,746s Sample Count: 1
 
-![Sc](/assets/hw4-sphere_perlin_scale)
+![Sc](/assets/hw4-sphere_perlin_scale.jpg)
 
 > Figure 4.2.18: sphere_perlin_scale scene. Render time: 0m1,250s Sample Count: 1
 
