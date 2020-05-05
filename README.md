@@ -321,11 +321,19 @@ Until now, we were assigning a single color value to our background. Since we ar
 
 ### 4.1.c. Normal Mapping
 
-After getting the color value from an image file, we are not limited to use it to determine the color of our surface. We can also use it to change our normal at the intersection point. By doing so, we can obtain hollows and roughness on a surface. For example, if we want to have the Moon in our scene, using a sphere object would make sense. Then we should do texture mapping which means we are going to need an image file. But this is not enough since we will put the colors from the image file directly on the surface of a sphere. Which means the holes on the Moon will not be on our sphere object. It will look like a painting on a perfectly smooth sphere. To avoid this and improve the realism we need to change the normal of the surface whenever we have an intersection. Changing the normal will trick the eye that there is a hole on the surface although it is still perfectly smooth. The reason behind this is that normals are used to make shading computations and changing the normal will change what you are seeing. Details of this reason are intentionally avoided here. For more information see [Shading](https://en.wikipedia.org/wiki/Shading).
+After getting the color value from an image file, we are not limited to use it to determine the color of our surface. We can also use it to change our normal at the intersection point. By doing so, we can obtain hollows, heightness and roughness on a surface. For example, if we want to have the Earth in our scene, using a sphere object would make sense. Then we should do texture mapping which means we are going to need an image file. But this is not enough since we will put the colors from the image file directly on the surface of a sphere. Which means the mountains on the Earth will not be on our sphere object. It will look like a painting on a perfectly smooth sphere. To avoid this and improve the realism we need to change the normal of the surface whenever we have an intersection. Changing the normal will trick the eye that there is some height difference on the surface although it is still perfectly smooth. The reason behind this is that normals are used to make shading computations and changing the normal will change what you are seeing. Details of this reason are intentionally avoided here. For more information see [Shading](https://en.wikipedia.org/wiki/Shading).
+
+![Sc](/assets/hw4-normal-mapping.jpg)
+
+> Figure 4.1.1: Normal mapping example
 
 ### 4.1.d. Bump Mapping
 
 Bump mapping is used to change the normal just like in the normal mapping. The difference is that in the normal mapping we are simply replacing the normal with the value obtained from the image file. In bump mapping, however, we are adjusting the normal in a way that it represents displacements on the surface more accurately. This means that we are trying to find the normal if we had such complex surface although we don't. First of all just like in the normal mapping we have to find an intersection point on the surface and the corresponding value from the image file. Value from the image file gives us the amount of change at the intersection point of the surface. This change is used to find the new normal at that intersection point.
+
+![Sc](/assets/hw4-bump-mapping.jpg)
+
+> Figure 4.1.2: Bump mapping example
 
 ### 4.1.e. Perlin Noise
 
@@ -337,12 +345,28 @@ All of the above discussion can be made with using an image file as a texture bu
 
 First problem I encountered was about the bump mapping. To find the perturbed normal, first we need to compute the tangent and bitangent vectors at the intersection point. I thought I should normalize these two vectors since I thought the normal, tangent and bitangent coordinate system should be orthonormal. However, when I normalize these vectors I lose the scaling information and different surfaces will end up having the same size of vectors giving me the wrong result. For example bigger spheres should have larger size of tangent and bitangent vectors. Here is an example of the wrong implementation.
 
+![Sc](/assets/hw4-bug-1.jpg)
+
+> Figure 4.3.1: Wrong implementation of bump mapping
+
 Another issue was about Perlin weight function computation. I was just computing the weight with the components of the vectors without taking their absolute value. However, this is incorrect since we are trying to find the weighted average of vector contributions to the point in space. Therefore I have to take the absolute value of the components of vectors. Wrong result can be observed below.
 
+![Sc](/assets/hw4-bug-2.jpg)
+
+> Figure 4.3.2: Wrong implementation of Perlin weight function
+
 The last issue was not about textures. I had a bug which stayed alive through the earlier versions of the ray tracer. It was inside the gett(point) function of the ray class. Gett(point) function simply returns the t value of the ray at given point. I was just making the computations with respect to the x component of the direction of ray. Whenever the x component is zero, a division becomes a zero division and function returns NaN. Now I just check this case and the issue is gone. Problem can be observed here.
+
+![Sc](/assets/hw4-bug-3.jpg)
+
+> Figure 4.3.3: Bug at gett(point) function of Ray class
 
 ### 4.4. Conclusion
 
 In the earlier versions, we had important advancements. I especially liked the last version where I implemented the multisampling and distributed ray tracing. But I have to say that I liked this version as much as the last one. Putting the textures on our objects bring life to the scene. I really liked how different it feels after implementing this version. Moreover, as a space enthusiast I found out that Nasa has some pretty cool images for texture and bump mapping of celestial bodies such as the Moon, Mars, etc. I immediately downloaded them and used to get these results.
+
+![Sc](/assets/hw4-conclusion.jpg)
+
+> Figure 4.4.1: Moon
 
 After getting the result of the Moon scene, I can say that we need directional light to better simulate the Moon object. At this point I used point light. I positioned the light at a very long distance from the obejct and I increased its intensity. Obviously I also set the values of ambient light to zero. However, sunlight would be better simulated with a directional light. I am looking forward to add different types of light sources including directional light in our next version of the ray tracer.
