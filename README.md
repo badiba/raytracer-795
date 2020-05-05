@@ -363,7 +363,7 @@ The last issue was not about textures. I had a bug which stayed alive through th
 
 ### 4.4. Conclusion
 
-In the earlier versions, we had important advancements. I especially liked the last version where I implemented the multisampling and distributed ray tracing. But I have to say that I liked this version as much as the last one. Putting the textures on our objects bring life to the scene. I really liked how different it feels after implementing this version. Moreover, as a space enthusiast I found out that Nasa has some pretty cool images for texture and bump mapping of celestial bodies such as the Moon, Mars, etc. I immediately downloaded them and used to get these results.
+In the earlier versions, we had important advancements. I especially liked the last version where I implemented the multisampling and distributed ray tracing. But I have to say that I liked this version as much as the last one. Putting the textures on our objects brought life to the scene. I really liked how different it feels after implementing this version. Moreover, as a space enthusiast I found out that Nasa has some pretty cool images for texture and bump mapping of celestial bodies such as the Moon, Mars, etc. I immediately downloaded them and used to get the below result.
 
 ![Sc](/assets/hw4-conclusion.jpg)
 
