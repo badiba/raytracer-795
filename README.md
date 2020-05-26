@@ -17,6 +17,8 @@ If applicable, time comparisons of different implementations are also added in t
 
 Different versions of the Ray Tracer are provided below. Version at the top is the latest.
 
+[5. HDR Imaging and Advanced Lights](/pages/Page5.md)
+
 [4. Texture, Normal and Bump Mapping](/pages/Page4.md)
 
 [3. Transformations, Instancing, Multisampling and Distributed Ray tracing](/pages/Page3.md)
