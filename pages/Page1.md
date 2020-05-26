@@ -34,23 +34,23 @@ Basic Ray Tracer supports shadows. Shadow computation is straight-forward. If th
 ### 1.2. Resulting Images
 Here are some scenes rendered with Basic Ray Tracer. Rendering time is also included.
 
-![Sc](/assets/hw1-simple-correct.jpg)
+![Sc](/../assets/hw1-simple-correct.jpg)
 
 > Figure 1.2.1: Simple scene. Time: 0.309s
 
-![Sc](/assets/hw1-sphere-correct.jpg)
+![Sc](/../assets/hw1-sphere-correct.jpg)
 
 > Figure 1.2.2: Spheres scene. Time: 0.342s
 
-![Sc](/assets/hw-cornellbox-correct.jpg)
+![Sc](/../assets/hw-cornellbox-correct.jpg)
 
 > Figure 1.2.3: Cornellbox scene. Time: 0.902s
 
-![Sc](/assets/hw1-bunny-correct.jpg)
+![Sc](/../assets/hw1-bunny-correct.jpg)
 
 > Figure 1.2.4: Bunny scene. Time: 1m26.950s
 
-![Sc](/assets/hw1-scienceTree-correct.jpg)
+![Sc](/../assets/hw1-scienceTree-correct.jpg)
 
 > Figure 1.2.5: Science Tree scene. Time: 3m8.178s
 
@@ -61,7 +61,7 @@ Currently it takes too much time to render these scenes. In the next version, we
 ### 1.3. Bugs and fixes
 I encountered several bugs during the implementation of Basic Ray Tracer. If you look closely at the below image, you will see that there are black dots on the gray square behind the spheres. The reason behind this is `Intersection Epsilon Value`. This value is used to tolerate floating point errors for intersection calculations. I forgot to set a default value for this variable. When the program tried to access this variable it was just a random number. Intersection tests were failing due to this problem resulting in the black dots as seen below.
 
-![Sc](/assets/blackdots.jpg)
+![Sc](/../assets/blackdots.jpg)
 
  > Figure 1.3.1: Black dots on cornell box.
 
@@ -69,13 +69,13 @@ Obviously this wasn't the only scene that the black dots appeared. Moreover, at 
 
 Another bug was present because of the miscalculation of shadows. To check if an object is under shadow we send shadow rays. The purpose of these shadow rays are to check if there is an object between the intersection point and the light source. The problem was that I wasn't checking if the object is inbetween. If the object is behind the light source, shadow ray will still intersect with that object. Correct implementation should check whether the object is behind the light source or not. I wasn't doing that which resulted in incorrect shadows as seen below.
 
-![Sc](/assets/hw1-cornellbox-pages.jpg)
+![Sc](/../assets/hw1-cornellbox-pages.jpg)
 
 > Figure 1.3.2: Incorrect shadows on cornell box.
 
 The another bug can be observed at the bunny scene. It was caused by the wrong implementation of the intersection of a `ray` with a `Mesh`. I was not checking the nearest intersection point therefore the first intersection was being returned. First intersection point can be on the backface of the bunny. If that is the case, intersection will be under shadow which will result in black triangles on bunny as seen below.
 
-![Sc](/assets/hw1-bunny-pages.jpg)
+![Sc](/../assets/hw1-bunny-pages.jpg)
 
 > Figure 1.3.3: Black triangles on bunny.
 
