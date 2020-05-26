@@ -1,1 +1,1 @@
-[a relative link](Page1.md)
+[a relative link](pages/Page1.md)
