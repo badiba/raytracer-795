@@ -1,19 +1,4 @@
-# Introduction
-
-This page includes technical information and personal experiences on the homeworks of CENG795 Advanced Ray Tracing class. It is under development and updated frequently. Owner of this page is Bahadir Coskun.
-
-# Content
-
-This section includes different versions of the Ray Tracer. In every new version, new features are added. Each version has it's own subsection. These subsections include;
-
-- brief explanations of what is being added in that version, 
-- resulting images in that version,
-- what kind of bugs have been encountered and how did I manage to fix them, 
-- my personal experiences. 
-
-If applicable, time comparisons of different implementations are also added in these subsections.
-
-## 3. Transformations, Instancing, Multisampling and Distributed Ray tracing- Week 5 & 6
+## 3. Transformations, Instancing, Multisampling and Distributed Ray tracing
 
 We parse objects and their vertices from an XML or a PLY file as explained in the earlier version of the Raytracer. These vertices are "stationary" in these files. In order to move, rotate or scale our objects, I added Transformations in this version.
 
@@ -67,31 +52,31 @@ In earlier versions, we assumed metal or mirror objects to have perfect surfaces
 
 Here are some images created with the current version of the ray tracer. Sample count is also shared since it is an important factor for the render time.
 
-![Sc](/assets/hw3-simple.jpg)
+![Sc](/../assets/hw3-simple.jpg)
 
 > Figure 3.2.1: Simple Transform. Render time: 0m0,181s Sample count: 1
 
-![Sc](/assets/hw3-spheres.jpg)
+![Sc](/../assets/hw3-spheres.jpg)
 
 > Figure 3.2.2: Spheres DOF. Render time: 0m15,500s Sample count: 100
 
-![Sc](/assets/hw3-cornell_brushed.jpg)
+![Sc](/../assets/hw3-cornell_brushed.jpg)
 
 > Figure 3.2.3: Cornellbox Brushed. Render time: 1m28,701s Sample count: 400
 
-![Sc](/assets/hw3-cornell_dynamic.jpg)
+![Sc](/../assets/hw3-cornell_dynamic.jpg)
 
 > Figure 3.2.4: Cornellbox Dynamic. Render time: 2m53,237s Sample count: 900
 
-![Sc](/assets/hw3-metal.jpg)
+![Sc](/../assets/hw3-metal.jpg)
 
 > Figure 3.2.5: Metal Glass Plates. Render time: 0m57,103s Sample count: 36
 
-![Sc](/assets/hw3-dragon.jpg)
+![Sc](/../assets/hw3-dragon.jpg)
 
 > Figure 3.2.6: Dragon Dynamic. Render time: 21m47,896s Sample count: 100
 
-![Sc](/assets/hw3-tap.jpg)
+![Sc](/../assets/hw3-tap.jpg)
 
 > Figure 3.2.7: Tap. Render time: 2m20,411s Sample count: 100
 
@@ -99,15 +84,15 @@ Here are some images created with the current version of the ray tracer. Sample 
 
 The first problem was about the glm library that I added to use it's transformation functionalities. Glm applies transformations in reverse order. In other words, the last transformation applied to your 4x4 transformation matrix should be the first transformation that is going to be applied to your object. Not only this but also the fact that glm chooses to print their matrices in column major order made me lose a few hours trying to figure out what was wrong. After all, I still appreciate their work. Resulting image is shared below.
 
-![Sc](/assets/hw3-bug-1.jpg)
+![Sc](/../assets/hw3-bug-1.jpg)
 
 The second problem was about transforming the rays from world space to object local space. In order to transform rays, we need to transform it's two components, namely it's origin and direction. My problem was about the direction. As explained above we use homogenous coordinates to make transformations calculations. In homogenous coordinates, a three dimensional vector has 4 components. The last component of a vector should be set to zero since vectors cannot be translated but they can be rotated and scaled. Setting the last component of a vector to 1 changes it's behvaiour and the results become wrong as shown below. I found this solution at online edition of PBRT (see [PBRT](http://www.pbr-book.org/))
 
-![Sc](/assets/hw3-bug-2.jpg)
+![Sc](/../assets/hw3-bug-2.jpg)
 
 The third problem was about the wrong calculation of normals. After finding the normal at object local space, in order to transform it to world space we multiply the normal with inverse transpose of object transformations. While doing this, order of matrix multiplication was wrong resulting in the below image (You never know what you are going to see when the rendering is over).
 
-![Sc](/assets/hw3-bug-3.jpg)
+![Sc](/../assets/hw3-bug-3.jpg)
 
 The most important issue was about the performance. And this issue kept appearing at different steps of this version of the Ray tracer mainly because of the transformation calculations and dielectric material. There was a significant increase in rendering time whenever I added dielectric material to an object. At first I thought this was normal since dielectric material computations are much more complex than other materials. But after trying to render dragon dynamic scene and seeing that it takes so much time (around 122 minutes), I thought I should do something. I first wanted to check and hopefully fix dielectric material computations but there was nothing wrong with it. Then I profiled every step of the program and found that in some rare cases my BVH intersection function was trying to intersect the ray with all of the triangles inside the BVH structure. When I found this, I was sure that I was on the right path. First I thought that my box intersection method was wrong and checked it. Again there was nothing wrong with it. Then I wanted to see what kind of rays caused this bug. And I saw the reason behind this bug. The direction of the ray was just three NaNs. Then I understood that whenever total internal reflection happened inside a dielectric material this bug occured since the square root was negative for not-reflected ray. I added this case into my dielectric material computations and it was fixed. After this improvement dragon dynamic took around 54 minutes.
 
@@ -123,6 +108,6 @@ Another passion of mine with this project is to increase the performance. This w
 
 Yet another passion of mine is to play with the images. I wanted to make a stray comet. I used two spheres to make it. One for the head, other for the tail. Tail has an absurd motion blur though. I hope you like it.
 
-![Sc](/assets/hw3-conclusion.jpg)
+![Sc](/../assets/hw3-conclusion.jpg)
 
 
