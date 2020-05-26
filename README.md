@@ -15,11 +15,13 @@ If applicable, time comparisons of different implementations are also added in t
 
 ## Versions
 
-###[Texture, Normal and Bump Mapping](/pages/Page4.md)
+Different versions of the Ray Tracer are provided below. Version at the top is the latest.
 
-###[Transformations, Instancing, Multisampling and Distributed Ray tracing](/pages/Page3.md)
+[4. Texture, Normal and Bump Mapping](/pages/Page4.md)
 
-###[Recursive Ray Tracing](/pages/Page2.md)
+[3. Transformations, Instancing, Multisampling and Distributed Ray tracing](/pages/Page3.md)
 
-###[Basic Ray Tracer](/pages/Page1.md)
+[2. Recursive Ray Tracing](/pages/Page2.md)
+
+[1. Basic Ray Tracer](/pages/Page1.md)
 
