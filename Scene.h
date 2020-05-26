@@ -37,7 +37,7 @@ typedef struct DielectricComponent
 // Forward declarations to avoid cyclic references
 class Camera;
 
-class PointLight;
+class Light;
 
 class Material;
 
@@ -58,6 +58,7 @@ public:
     std::mt19937 mt;
     std::uniform_real_distribution<float> dist;
 
+    int environmentLightIndex;
 	int maxRecursionDepth;
 	int backgroundTexture;
 	float intTestEps;
@@ -66,12 +67,14 @@ public:
 	Eigen::Vector3f ambientLight;
     Perlin* perlin;
 
+    std::vector<std::string> images;
 	std::vector<Camera*> cameras;
-	std::vector<PointLight*> lights;
+	std::vector<Light*> lights;
 	std::vector<Material*> materials;
 	std::vector<Transformation*> translations;
     std::vector<Transformation*> scalings;
     std::vector<Transformation*> rotations;
+    std::vector<Transformation*> composites;
 	std::vector<Eigen::Vector3f> vertices;
 	std::vector<Eigen::Vector2f> textureCoordinates;
 	std::vector<Shape*> objects;
@@ -90,11 +93,11 @@ private:
 
 	Eigen::Vector3f NanCheck(Eigen::Vector3f checkVector);
 
-	Eigen::Vector3f diffuse(ReturnVal ret, Material* mat, Ray ray, PointLight* light);
+	Eigen::Vector3f diffuse(ReturnVal ret, Material* mat, Ray ray, Light* light);
 
-	bool isDark(const Ray& primeRay, Eigen::Vector3f point, const ReturnVal& ret, PointLight* light);
+	bool isDark(const Ray& primeRay, Eigen::Vector3f point, const ReturnVal& ret, Light* light);
 
-	Eigen::Vector3f specular(Ray ray, ReturnVal ret, Material* mat, PointLight* light);
+	Eigen::Vector3f specular(Ray ray, ReturnVal ret, Material* mat, Light* light);
 
 	Eigen::Vector3f ambient(Material* mat);
 
@@ -116,13 +119,13 @@ private:
 
 	float ConductorFresnel(float n_t, float k_t, const Ray& ray, const Eigen::Vector3f& normal);
 
-	Color MultiSample(int row, int col, Camera* cam);
+    Eigen::Vector3f MultiSample(int row, int col, Camera* cam);
 
-    Color SingleSample(int row, int col, Camera* cam);
+    Eigen::Vector3f SingleSample(int row, int col, Camera* cam);
 
 	Color RawColorToColor(Eigen::Vector3f color);
 
-    Eigen::Vector3f GetBackgroundColor(int row, int col, Camera* cam);
+    Eigen::Vector3f GetBackgroundColor(int row, int col, Camera* cam, const Ray &ray);
 };
 
 #endif

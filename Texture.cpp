@@ -1,15 +1,22 @@
 #include "Texture.h"
+#include "Helper.h"
 
 using namespace Eigen;
 
+// Constructor for image texture.
 Texture::Texture(std::string& filename, DecalMode dm, Interpolation interpolation, TextureType type, int normalizer, float bumpFactor){
     if (IsPNG(filename.c_str())){
-        isPng = true;
+        _type = _png;
         rowPointers = nullptr;
         ReadPNG(filename.c_str());
     }
+    else if (IsExr(filename.c_str())){
+        _type = _exr;
+        _exrImage = nullptr;
+        ReadExr(filename.c_str());
+    }
     else{
-        isPng = false;
+        _type = _jpg;
         ReadJPG(filename.c_str());
     }
 
@@ -20,6 +27,7 @@ Texture::Texture(std::string& filename, DecalMode dm, Interpolation interpolatio
     this->bumpFactor = bumpFactor;
 }
 
+// Constructor for perlin texture.
 Texture::Texture(DecalMode dm, Interpolation interpolation, TextureType type, NoiseConversion nc, int normalizer, float noiseScale, float bumpFactor){
     this->decalMode = dm;
     this->interpolation = interpolation;
@@ -44,19 +52,24 @@ Eigen::Vector3f Texture::GetColorAtPixel(int i, int j) {
         j = height-1;
     }
 
-    if (isPng){
+    if (_type == _png){
         Vector3f color = {(float)(&rowPointers[j][i*4])[0], (float)(&rowPointers[j][i*4])[1],
                          (float)(&rowPointers[j][i*4])[2]};
         return color;
         /*return Vector3f{(float)(&rowPointers[j][i*4])[0], (float)(&rowPointers[j][i*4])[1],
                         (float)(&rowPointers[j][i*4])[2]};*/
     }
-    else{
+    else if (_type == _jpg){
         Vector3f color = {(float)rawImage[(j*width+i)*numComponents], (float)rawImage[(j*width+i)*numComponents + 1],
                          (float)rawImage[(j*width+i)*numComponents + 2]};
         return color;
         /*return Vector3f{(float)rawImage[(j*width+i)*numComponents], (float)rawImage[(j*width+i)*numComponents + 1],
                         (float)rawImage[(j*width+i)*numComponents + 2]};*/
+    }
+    else{
+        // DO I NEED NORMALIZER?
+        Vector3f color = {_exrImage[(j*width+i)*4], _exrImage[(j*width+i)*4 + 1], _exrImage[(j*width+i)*4 + 2]};
+        return color;
     }
 }
 
@@ -141,6 +154,38 @@ bool Texture::IsPNG(const char *filename) {
     }
 
     return false;
+}
+
+bool Texture::IsExr(const char *filename) {
+    int i = 0;
+    int c = 0;
+    while (filename[i] != '\0'){
+        if (filename[i] == '.'){
+            c = 1;
+        }
+        else if (filename[i] == 'e' && c == 1){
+            c = 2;
+        }
+        else if (filename[i] == 'x' && c == 2){
+            c = 3;
+        }
+        else if (filename[i] == 'r' && c == 3){
+            return true;
+        }
+        else{
+            c = 0;
+        }
+
+        i++;
+    }
+
+    return false;
+}
+
+void Texture::ReadExr(const char *filename) {
+    Vector2f widthHeight = ExrLibrary::ReadExr(filename, _exrImage);
+    width = widthHeight[0];
+    height = widthHeight[1];
 }
 
 void Texture::ReadJPG(const char *filename) {

@@ -58,8 +58,25 @@ namespace Parser{
             char imageName[64];
             Vector3f pos, gaze, up;
             ImagePlane imgPlane;
+            std::string handedness;
 
             eResult = pCamera->QueryIntAttribute("id", &id);
+            bool isLeftHanded = false;
+            const XMLAttribute* attr = pCamera->FirstAttribute();
+            while (attr != nullptr)
+            {
+                if (std::strncmp(attr->Name(), "handedness", 10) != 0)
+                {
+                    attr = attr->Next();
+                    continue;
+                }
+
+                if (std::strncmp(attr->Value(), "left", 4) == 0)
+                {
+                    isLeftHanded = true;
+                }
+                break;
+            }
 
             // Parse depth of field.
             camElement = pCamera->FirstChildElement("FocusDistance");
@@ -135,7 +152,7 @@ namespace Parser{
             }
 
             cameras.push_back(new Camera(id, numSamples, imageName, pos, gaze, up, imgPlane, focusDistance, apertureSize,
-                    isDof));
+                    isDof, isLeftHanded));
 
             pCamera = pCamera->NextSiblingElement("Camera");
         }
@@ -155,6 +172,24 @@ namespace Parser{
             int curr = materials.size() - 1;
 
             eResult = pMaterial->QueryIntAttribute("id", &materials[curr]->id);
+
+            bool degamma = false;
+            const XMLAttribute* attrDegamma = pMaterial->FirstAttribute();
+            while (attrDegamma != nullptr)
+            {
+                if (std::strncmp(attrDegamma->Name(), "degamma", 7) != 0)
+                {
+                    attrDegamma = attrDegamma->Next();
+                    continue;
+                }
+
+                if (std::strncmp(attrDegamma->Value(), "true", 4) == 0)
+                {
+                    degamma = true;
+                }
+                break;
+            }
+
             materialElement = pMaterial->FirstChildElement("AmbientReflectance");
             str = materialElement->GetText();
             sscanf(str, "%f %f %f", &materials[curr]->ambientRef(0), &materials[curr]->ambientRef(1),
@@ -167,6 +202,19 @@ namespace Parser{
             str = materialElement->GetText();
             sscanf(str, "%f %f %f", &materials[curr]->specularRef(0), &materials[curr]->specularRef(1),
                    &materials[curr]->specularRef(2));
+
+            if (degamma){
+                float gamma = 2.2f;
+                materials[curr]->ambientRef[0] = pow(materials[curr]->ambientRef[0], gamma);
+                materials[curr]->ambientRef[1] = pow(materials[curr]->ambientRef[1], gamma);
+                materials[curr]->ambientRef[2] = pow(materials[curr]->ambientRef[2], gamma);
+                materials[curr]->diffuseRef[0] = pow(materials[curr]->diffuseRef[0], gamma);
+                materials[curr]->diffuseRef[1] = pow(materials[curr]->diffuseRef[1], gamma);
+                materials[curr]->diffuseRef[2] = pow(materials[curr]->diffuseRef[2], gamma);
+                materials[curr]->specularRef[0] = pow(materials[curr]->specularRef[0], gamma);
+                materials[curr]->specularRef[1] = pow(materials[curr]->specularRef[1], gamma);
+                materials[curr]->specularRef[2] = pow(materials[curr]->specularRef[2], gamma);
+            }
 
             materialElement = pMaterial->FirstChildElement("Roughness");
             if (materialElement != nullptr){
@@ -270,7 +318,7 @@ namespace Parser{
         }
     }
 
-    void ParseTextures(XMLNode* pRoot, const char* xmlPath, std::vector<Texture*> &textures){
+    void ParseTextures(XMLNode* pRoot, const char* xmlPath, std::vector<Texture*> &textures, std::vector<std::string>& imageNames){
         std::vector<std::string> images;
         const XMLAttribute* attr;
         bool isImage = false;
@@ -305,6 +353,7 @@ namespace Parser{
             while (pImage != nullptr){
                 directPath = basePath + pImage->GetText();
                 images.push_back(directPath);
+                imageNames.push_back(directPath);
                 pImage = pImage->NextSiblingElement("Image");
             }
         }
@@ -401,7 +450,8 @@ namespace Parser{
     }
 
     void ParseTransformations(XMLNode* pRoot, std::vector<Transformation*> &translations,
-                              std::vector<Transformation*> &scalings, std::vector<Transformation*> &rotations){
+                              std::vector<Transformation*> &scalings, std::vector<Transformation*> &rotations,
+                              std::vector<Transformation*> &composites){
         const char* str;
         XMLError eResult;
 
@@ -451,6 +501,28 @@ namespace Parser{
 
                 pRotation = pRotation->NextSiblingElement("Rotation");
             }
+
+            // Parse composites.
+            XMLElement* pComposite = pElement->FirstChildElement("Composite");
+            while(pComposite != nullptr){
+                composites.push_back(new Transformation());
+
+                int curr = composites.size() - 1;
+                eResult = pComposite->QueryIntAttribute("id", &composites[curr]->id);
+
+                str = pComposite->GetText();
+                sscanf(str, "%f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
+                        &composites[curr]->composite[0][0], &composites[curr]->composite[1][0],
+                       &composites[curr]->composite[2][0], &composites[curr]->composite[3][0],
+                       &composites[curr]->composite[0][1], &composites[curr]->composite[1][1],
+                       &composites[curr]->composite[2][1], &composites[curr]->composite[3][1],
+                       &composites[curr]->composite[0][2], &composites[curr]->composite[1][2],
+                       &composites[curr]->composite[2][2], &composites[curr]->composite[3][2],
+                       &composites[curr]->composite[0][3], &composites[curr]->composite[1][3],
+                       &composites[curr]->composite[2][3], &composites[curr]->composite[3][3]);
+
+                pComposite = pComposite->NextSiblingElement("Composite");
+            }
         }
     }
 
@@ -459,6 +531,10 @@ namespace Parser{
         XMLError eResult;
 
         XMLElement* pElement = pRoot->FirstChildElement("VertexData");
+        if (pElement == nullptr){
+            return;
+        }
+
         int cursor = 0;
         Vector3f tmpPoint;
         str = pElement->GetText();
@@ -552,6 +628,10 @@ namespace Parser{
                 transformationIndex = atoi(str + cursor + 1);
                 transformations.push_back(new Transformation(transformationIndex, TransformationType::Rotation));
             }
+            else if (str[cursor] == 'c'){
+                transformationIndex = atoi(str + cursor + 1);
+                transformations.push_back(new Transformation(transformationIndex, TransformationType::Composite));
+            }
 
             cursor++;
             while(str[cursor] != 's' && str[cursor] != 't' && str[cursor] != 'r' && str[cursor] != '\0'){
@@ -561,7 +641,7 @@ namespace Parser{
     }
 
     void ParseObjects(XMLNode* pRoot, const char* xmlPath, std::vector<Shape*> &objects, std::vector<Instance*> &instances,
-            std::vector<Vector3f> &vertices){
+            std::vector<Vector3f> &vertices, std::vector<Vector2f> &textureCoordinates){
         const char* str;
         XMLError eResult;
 
@@ -813,6 +893,19 @@ namespace Parser{
 
                 happly::PLYData plyIn(plyPath);
 
+                textureOffset = textureCoordinates.size() + 1;
+                if (plyIn.getElement("vertex").hasProperty("u")){
+                    std::vector<double> u = plyIn.getElement("vertex").getProperty<double>("u");
+                    std::vector<double> v = plyIn.getElement("vertex").getProperty<double>("v");
+
+                    Vector2f txtCoordinate;
+                    for (int i = 0; i < u.size(); i++){
+                        txtCoordinate[0] = u[i];
+                        txtCoordinate[1] = v[i];
+                        textureCoordinates.push_back(txtCoordinate);
+                    }
+                }
+
                 std::vector<std::vector<size_t>> fInd = plyIn.getFaceIndices<size_t>();
                 int fIndSize = fInd.size();
                 int vertexCount = vertices.size() + 1;
@@ -848,6 +941,7 @@ namespace Parser{
                     vertices.push_back(vertex);
                 }
 
+                vertexOffset = vertexCount;
                 objects.push_back(new Mesh(id, matIndex, faces, transformations, blurTransformation, isBlur, isSmooth));
                 objects[objects.size()-1]->textures = textures;
                 objects[objects.size()-1]->textureOffset = textureOffset - vertexOffset;
@@ -945,19 +1039,31 @@ namespace Parser{
         }
     }
 
-    void ParseLights(XMLNode* pRoot, Vector3f &ambientLight, std::vector<PointLight*> &lights){
+    void ParseLights(XMLNode* pRoot, Vector3f &ambientLight, std::vector<Light*> &lights, std::vector<std::string>& images,
+            int& eli){
         const char* str;
         XMLError eResult;
 
         int id;
+        int imageId;
         Vector3f position;
         Vector3f intensity;
+        Vector3f direction;
+        Vector3f radiance;
+        float coverage;
+        float fall;
+        float size;
         XMLElement* pElement = pRoot->FirstChildElement("Lights");
 
-        XMLElement* pLight = pElement->FirstChildElement("AmbientLight");
         XMLElement* lightElement;
-        str = pLight->GetText();
-        sscanf(str, "%f %f %f", &ambientLight(0), &ambientLight(1), &ambientLight(2));
+        XMLElement* pLight = pElement->FirstChildElement("AmbientLight");
+        if (pLight != nullptr){
+            str = pLight->GetText();
+            sscanf(str, "%f %f %f", &ambientLight(0), &ambientLight(1), &ambientLight(2));
+        }
+        else{
+            ambientLight = {0,0,0};
+        }
 
         pLight = pElement->FirstChildElement("PointLight");
         while (pLight != nullptr)
@@ -973,6 +1079,80 @@ namespace Parser{
             lights.push_back(new PointLight(position, intensity));
 
             pLight = pLight->NextSiblingElement("PointLight");
+        }
+
+        pLight = pElement->FirstChildElement("DirectionalLight");
+        while (pLight != nullptr)
+        {
+            eResult = pLight->QueryIntAttribute("id", &id);
+            lightElement = pLight->FirstChildElement("Direction");
+            str = lightElement->GetText();
+            sscanf(str, "%f %f %f", &direction(0), &direction(1), &direction(2));
+            lightElement = pLight->FirstChildElement("Radiance");
+            str = lightElement->GetText();
+            sscanf(str, "%f %f %f", &radiance(0), &radiance(1), &radiance(2));
+
+            lights.push_back(new DirectionalLight(direction, radiance));
+
+            pLight = pLight->NextSiblingElement("DirectionalLight");
+        }
+
+        pLight = pElement->FirstChildElement("SpotLight");
+        while (pLight != nullptr)
+        {
+            eResult = pLight->QueryIntAttribute("id", &id);
+            lightElement = pLight->FirstChildElement("Position");
+            str = lightElement->GetText();
+            sscanf(str, "%f %f %f", &position(0), &position(1), &position(2));
+            lightElement = pLight->FirstChildElement("Direction");
+            str = lightElement->GetText();
+            sscanf(str, "%f %f %f", &direction(0), &direction(1), &direction(2));
+            lightElement = pLight->FirstChildElement("Intensity");
+            str = lightElement->GetText();
+            sscanf(str, "%f %f %f", &intensity(0), &intensity(1), &intensity(2));
+            lightElement = pLight->FirstChildElement("CoverageAngle");
+            eResult = lightElement->QueryFloatText(&coverage);
+            lightElement = pLight->FirstChildElement("FalloffAngle");
+            eResult = lightElement->QueryFloatText(&fall);
+
+            lights.push_back(new SpotLight(position, direction, intensity, coverage, fall));
+
+            pLight = pLight->NextSiblingElement("SpotLight");
+        }
+
+        pLight = pElement->FirstChildElement("AreaLight");
+        while (pLight != nullptr)
+        {
+            eResult = pLight->QueryIntAttribute("id", &id);
+            lightElement = pLight->FirstChildElement("Position");
+            str = lightElement->GetText();
+            sscanf(str, "%f %f %f", &position(0), &position(1), &position(2));
+            lightElement = pLight->FirstChildElement("Normal");
+            str = lightElement->GetText();
+            sscanf(str, "%f %f %f", &direction(0), &direction(1), &direction(2));
+            lightElement = pLight->FirstChildElement("Radiance");
+            str = lightElement->GetText();
+            sscanf(str, "%f %f %f", &radiance(0), &radiance(1), &radiance(2));
+            lightElement = pLight->FirstChildElement("Size");
+            eResult = lightElement->QueryFloatText(&size);
+
+            lights.push_back(new AreaLight(position, direction, radiance, size));
+
+            pLight = pLight->NextSiblingElement("AreaLight");
+        }
+
+        eli = -1;
+        pLight = pElement->FirstChildElement("SphericalDirectionalLight");
+        while (pLight != nullptr)
+        {
+            eli = lights.size();
+            eResult = pLight->QueryIntAttribute("id", &id);
+            lightElement = pLight->FirstChildElement("ImageId");
+            eResult = lightElement->QueryIntText(&imageId);
+
+            lights.push_back(new EnvironmentLight(images[imageId-1]));
+
+            pLight = pLight->NextSiblingElement("SphericalDirectionalLight");
         }
     }
 }

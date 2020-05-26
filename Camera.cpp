@@ -13,7 +13,8 @@ Camera::Camera(int id,                      // Id of the camera
 		const ImagePlane& imgPlane,
 		float focusDistance,
 		float apertureSize,
-		bool isDof)  // Image plane parameters
+		bool isDof,
+		bool isLeftHanded)  // Image plane parameters
 {
 	this->id = id;
 
@@ -30,7 +31,13 @@ Camera::Camera(int id,                      // Id of the camera
 	strcpy(this->imageName, imageName);
 
 	this->gaze = gaze.normalized();
-	Vector3f w = (-gaze).normalized();
+	Vector3f w;
+	if (isLeftHanded){
+        w = (gaze).normalized();
+	}
+	else{
+        w = (-gaze).normalized();
+	}
 	right = (up.cross(w)).normalized();
 	this->up = w.cross(right);
 

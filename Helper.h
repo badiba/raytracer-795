@@ -16,7 +16,8 @@ namespace Transforming{
     Eigen::Vector3f TransformNormal(Eigen::Vector3f normal, glm::mat4 &tMatrix);
 
     void ComputeObjectTransformations(std::vector<Shape*> &objects, std::vector<Instance*> instances, std::vector<Transformation*> &translations,
-                              std::vector<Transformation*> &scalings, std::vector<Transformation*> &rotations);
+                              std::vector<Transformation*> &scalings, std::vector<Transformation*> &rotations
+            , std::vector<Transformation*> &composites);
 }
 
 namespace BVHMethods{
@@ -43,6 +44,11 @@ namespace GeometryHelpers
 {
     int GetAbsSmallestIndex(Eigen::Vector3f &vector);
     Eigen::Vector3f GetOrthonormalUVector(const Eigen::Vector3f &vector);
+}
+
+namespace ExrLibrary{
+    Eigen::Vector2f ReadExr(const char *filename, float*& data);
+    void SaveExr(const char *filename, float* data, int width, int height);
 }
 
 #endif

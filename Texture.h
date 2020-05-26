@@ -8,6 +8,8 @@
 #include <jpeglib.h>
 #include <png.h>
 
+enum TextureFileType{_png, _jpg, _exr};
+
 class Texture {
 public:
     Texture(std::string& filename, DecalMode dm, Interpolation interpolation, TextureType type, int normalizer, float bumpFactor);
@@ -26,6 +28,7 @@ public:
 
 private:
     // common variables
+    TextureFileType _type;
     int width, height;
 
     // png variables
@@ -37,10 +40,14 @@ private:
     int numComponents;
     unsigned char *rawImage;
 
+    // exr variables
+    float* _exrImage;
+
     void ReadPNG(const char *filename);
     void ReadJPG(const char *filename);
+    void ReadExr(const char *filename);
     bool IsPNG(const char* filename);
-    bool isPng;
+    bool IsExr(const char* filename);
 };
 
 

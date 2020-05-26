@@ -19,61 +19,6 @@
 using namespace Eigen;
 using namespace tinyxml2;
 
-bool Scene::isDark(const Ray& primeRay, Vector3f point, const ReturnVal& ret, PointLight* light)
-{
-	// Find direction vector from intersection to light.
-	Vector3f direction = light->position - point;
-
-	// Create a new ray. Origin is moved with epsilon towards light to avoid self intersection.
-	Ray ray(point + ret.normal * shadowRayEps, direction / direction.norm(), primeRay.time);
-
-	// Find nearest intersection of ray with all objects to see if there is a shadow.
-    ReturnVal nearestRet = BVHMethods::FindIntersection(ray, objects, instances);
-
-	if (nearestRet.full)
-	{
-		bool objectBlocksLight = (point - light->position).norm() > (point - nearestRet.point).norm();
-		return objectBlocksLight;
-	}
-
-	return false;
-}
-
-Vector3f Scene::specular(Ray ray, ReturnVal ret, Material* mat, PointLight* light)
-{
-	// Compute specular color at given point with given light.
-	Vector3f wo = -ray.direction;
-	Vector3f wi = (light->position - ret.point) / (light->position - ret.point).norm();
-	Vector3f h = (wo + wi) / (wo + wi).norm();
-	float nh = ret.normal.dot(h);
-	float alpha = std::max(0.0f, nh);
-
-	Vector3f specularColor = light->computeLightContribution(ret.point).cwiseProduct(
-			mat->specularRef * pow(alpha, mat->phongExp));
-	return specularColor;
-}
-
-Vector3f Scene::diffuse(ReturnVal ret, Material* mat, Ray ray, PointLight* light)
-{
-	// Compute diffuse color at given point with given light.
-	Vector3f wi = (light->position - ret.point) / (light->position - ret.point).norm();
-	float nh = ret.normal.dot(wi);
-	float alpha = std::max(0.0f, nh);
-
-	Vector3f diffuseColor;
-	if (ret.dm == ReplaceKd){
-        diffuseColor = (light->computeLightContribution(ret.point).cwiseProduct((ret.textureColor / ret.textureNormalizer) * alpha));
-	}
-	else if (ret.dm == BlendKd){
-	    Vector3f blended = (mat->diffuseRef + (ret.textureColor / ret.textureNormalizer)) * 0.5f;
-        diffuseColor = (light->computeLightContribution(ret.point).cwiseProduct(blended * alpha));
-	}
-	else{
-        diffuseColor = (light->computeLightContribution(ret.point).cwiseProduct(mat->diffuseRef * alpha));
-	}
-	return diffuseColor;
-}
-
 Vector3f Scene::ambient(Material* mat)
 {
 	// Create new ambient raw color (not bounded to 255).
@@ -285,14 +230,14 @@ Vector3f Scene::NanCheck(Vector3f checkVector){
 Eigen::Vector3f Scene::Shading(const Ray& ray, const ReturnVal& ret, Material* mat)
 {
     if (ret.dm == ReplaceAll){
-        return ret.textureColor.cwiseMin(255);
+        return ret.textureColor;
     }
 
 	// Create a new rawColor (not bounded to 255).
 	Vector3f color = RecursiveShading(ray, ret, mat, maxRecursionDepth);
 
 	// Clamp and return.
-	return color.cwiseMin(255);
+	return color;
 }
 
 Vector3f Scene::BasicShading(const Ray& ray, const ReturnVal& ret, Material* mat)
@@ -306,6 +251,7 @@ Vector3f Scene::BasicShading(const Ray& ray, const ReturnVal& ret, Material* mat
 	// Check shadows for diffuse and specular shading (for every light source).
 	for (int i = 0; i < lights.size(); i++)
 	{
+	    /*
 		if (isDark(ray, ret.point, ret, lights[i]))
 		{
 			continue;
@@ -313,7 +259,8 @@ Vector3f Scene::BasicShading(const Ray& ray, const ReturnVal& ret, Material* mat
 
 		// No shadow for this light: Add diffuse and specular shading color.
 		rawColor += diffuse(ret, mat, ray, lights[i]);
-		rawColor += specular(ray, ret, mat, lights[i]);
+		rawColor += specular(ray, ret, mat, lights[i]);*/
+	    rawColor += lights[i]->BasicShading(ray, ret, mat);
 	}
 
 	return rawColor;
@@ -350,7 +297,7 @@ void Scene::renderScene(void)
     perlin = new Perlin();
 
     // Compute object transformation matrices.
-    Transforming::ComputeObjectTransformations(objects, instances, translations, scalings, rotations);
+    Transforming::ComputeObjectTransformations(objects, instances, translations, scalings, rotations, composites);
 
     // Fill in vertex normals.
     Eigen::Vector3f emptyNormal = {0,0,0};
@@ -415,7 +362,7 @@ void Scene::renderScene(void)
 	}
 }
 
-Color Scene::SingleSample(int row, int col, Camera* cam){
+Vector3f Scene::SingleSample(int row, int col, Camera* cam){
     Ray ray(0);
     Vector3f color;
     ReturnVal nearestRet;
@@ -430,13 +377,13 @@ Color Scene::SingleSample(int row, int col, Camera* cam){
 
     else
     {
-        color = GetBackgroundColor(row, col, cam);
+        color = GetBackgroundColor(row, col, cam, ray);
     }
 
-    return RawColorToColor(color);
+    return color;
 }
 
-Color Scene::MultiSample(int col, int row, Camera* cam){
+Vector3f Scene::MultiSample(int col, int row, Camera* cam){
     Vector3f lbCorner = cam->PixelLBCorner(row, col);
     Vector3f color = {0,0,0};
     ReturnVal nearestRet;
@@ -455,15 +402,28 @@ Color Scene::MultiSample(int col, int row, Camera* cam){
             // Else paint with background color.
         else
         {
-            color += GetBackgroundColor(row, col, cam);
+            color += GetBackgroundColor(row, col, cam, sampleRay);
         }
     }
 
     color = color / sampleCount;
-    return RawColorToColor(color);
+    return color;
 }
 
-Vector3f Scene::GetBackgroundColor(int row, int col, Camera* cam){
+Vector3f Scene::GetBackgroundColor(int row, int col, Camera* cam, const Ray &ray){
+    if (environmentLightIndex != -1){
+        if (lights[environmentLightIndex]->GetType() != Environment){
+            return backgroundColor;
+        }
+        float theta = acos(ray.direction[1]);
+        float phi = atan2(ray.direction[2], ray.direction[0]);
+        float textureU = (-phi + M_PI) / (2 * M_PI);
+        float textureV = theta / M_PI;
+        Texture* txt = ((EnvironmentLight*)lights[environmentLightIndex])->GetTexture();
+        Vector3f radiance = txt->GetColorAtCoordinates(textureU, textureV);
+        return radiance;
+    }
+
     if (backgroundTexture == -1){
         return backgroundColor;
     }
@@ -485,10 +445,10 @@ Color Scene::RawColorToColor(Eigen::Vector3f color){
 
 void Scene::PutMarkAt(int x, int y, Image& image)
 {
-	image.setPixelValue(x - 1, y, Color{ 255, 0, 0 });
-	image.setPixelValue(x + 1, y, Color{ 255, 0, 0 });
-	image.setPixelValue(x, y - 1, Color{ 255, 0, 0 });
-	image.setPixelValue(x, y + 1, Color{ 255, 0, 0 });
+	image.setPixelValue(x - 1, y, Vector3f{ 255, 0, 0 });
+	image.setPixelValue(x + 1, y, Vector3f{ 255, 0, 0 });
+	image.setPixelValue(x, y - 1, Vector3f{ 255, 0, 0 });
+	image.setPixelValue(x, y + 1, Vector3f{ 255, 0, 0 });
 }
 
 // Parses XML file.
@@ -510,10 +470,10 @@ Scene::Scene(const char* xmlPath)
 	Parser::ParseMaterials(pRoot, materials);
 
 	std::cout << "Parsing textures." << std::endl;
-	Parser::ParseTextures(pRoot, xmlPath, textures);
+	Parser::ParseTextures(pRoot, xmlPath, textures, images);
 
     std::cout << "Parsing transformations." << std::endl;
-    Parser::ParseTransformations(pRoot, translations, scalings, rotations);
+    Parser::ParseTransformations(pRoot, translations, scalings, rotations, composites);
 
     std::cout << "Parsing vertices." << std::endl;
     Parser::ParseVertices(pRoot, vertices);
@@ -522,10 +482,10 @@ Scene::Scene(const char* xmlPath)
     Parser::ParseTextureCoordinates(pRoot, textureCoordinates);
 
     std::cout << "Parsing objects." << std::endl;
-	Parser::ParseObjects(pRoot, xmlPath, objects, instances, vertices);
+	Parser::ParseObjects(pRoot, xmlPath, objects, instances, vertices, textureCoordinates);
 
     std::cout << "Parsing lights." << std::endl;
-	Parser::ParseLights(pRoot, ambientLight, lights);
+	Parser::ParseLights(pRoot, ambientLight, lights, images, environmentLightIndex);
 
 	std::cout << "Parsing complete." << std::endl;
 

@@ -32,7 +32,8 @@ public:
 			const ImagePlane& imgPlane,
 			float focusDistance,
 			float apertureSize,
-			bool isDof); // Image plane parameters
+			bool isDof,
+			bool isLeftHanded); // Image plane parameters
 
 	// Computes the primary ray through pixel (row, col)
 	Ray getPrimaryRay(int row, int col) const;

@@ -2,6 +2,9 @@
 #include "BVH.h"
 #include "Instance.h"
 
+#define TINYEXR_IMPLEMENTATION
+#include "tinyexr.h"
+
 namespace BVHMethods{
     bool isNaN(Eigen::Vector3f checkVector){
         if (checkVector[0] != checkVector[0] || checkVector[1] != checkVector[1] || checkVector[2] != checkVector[2])
@@ -131,7 +134,7 @@ namespace Transforming{
 
     void ComputeObjectTransformations(std::vector<Shape*> &objects, std::vector<Instance*> instances,
             std::vector<Transformation*> &translations, std::vector<Transformation*> &scalings,
-            std::vector<Transformation*> &rotations){
+            std::vector<Transformation*> &rotations, std::vector<Transformation*> &composites){
 
         int transformIndex = 0;
         TransformationType type;
@@ -167,6 +170,9 @@ namespace Transforming{
                     angle = rotations[transformIndex-1]->angle;
                     *glmModel = glm::rotate(*glmModel, glm::radians(angle), glmCommon);
                 }
+                else if (type == TransformationType::Composite){
+                    *glmModel = composites[transformIndex-1]->composite;
+                }
             }
 
             objects[i]->inverse_tMatrix = new glm::mat4(1.0);
@@ -201,6 +207,9 @@ namespace Transforming{
                     glmCommon = {common[0], common[1], common[2]};
                     angle = rotations[transformIndex-1]->angle;
                     *glmModel = glm::rotate(*glmModel, glm::radians(angle), glmCommon);
+                }
+                else if (type == TransformationType::Composite){
+                    *glmModel = composites[transformIndex-1]->composite;
                 }
             }
 
@@ -330,5 +339,75 @@ namespace GeometryHelpers
         nonLinear[GetAbsSmallestIndex(nonLinear)] = 1;
 
         return (vector.cross(nonLinear)).normalized();
+    }
+}
+
+namespace ExrLibrary{
+    Eigen::Vector2f ReadExr(const char *filename, float*& data){
+        const char* err = nullptr;
+        int width, height;
+        int ret = LoadEXR(&data, &width, &height, filename, &err);
+
+        if (ret != TINYEXR_SUCCESS) {
+            if (err) {
+                fprintf(stderr, "ERR : %s\n", err);
+                FreeEXRErrorMessage(err); // release memory of error message.
+            }
+        }
+
+        return {width, height};
+    }
+
+    void SaveExr(const char *filename, float* data, int width, int height){
+        const char* err = nullptr;
+
+        EXRHeader header;
+        InitEXRHeader(&header);
+
+        EXRImage image;
+        InitEXRImage(&image);
+        image.num_channels = 3;
+
+        std::vector<float> images[3];
+        images[0].resize(width * height);
+        images[1].resize(width * height);
+        images[2].resize(width * height);
+
+        // Split RGBRGBRGB... into R, G and B layer
+        for (int i = 0; i < width * height; i++) {
+            images[0][i] = data[3*i+0];
+            images[1][i] = data[3*i+1];
+            images[2][i] = data[3*i+2];
+        }
+
+        float* image_ptr[3];
+        image_ptr[0] = &(images[2].at(0)); // B
+        image_ptr[1] = &(images[1].at(0)); // G
+        image_ptr[2] = &(images[0].at(0)); // R
+
+        image.images = (unsigned char**)image_ptr;
+        image.width = width;
+        image.height = height;
+
+        header.num_channels = 3;
+        header.channels = (EXRChannelInfo *)malloc(sizeof(EXRChannelInfo) * header.num_channels);
+        // Must be (A)BGR order, since most of EXR viewers expect this channel order.
+        strncpy(header.channels[0].name, "B", 255); header.channels[0].name[strlen("B")] = '\0';
+        strncpy(header.channels[1].name, "G", 255); header.channels[1].name[strlen("G")] = '\0';
+        strncpy(header.channels[2].name, "R", 255); header.channels[2].name[strlen("R")] = '\0';
+
+        header.pixel_types = (int *)malloc(sizeof(int) * header.num_channels);
+        header.requested_pixel_types = (int *)malloc(sizeof(int) * header.num_channels);
+        for (int i = 0; i < header.num_channels; i++) {
+            header.pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT; // pixel type of input image
+            header.requested_pixel_types[i] = TINYEXR_PIXELTYPE_HALF; // pixel type of output image to be stored in .EXR
+        }
+
+        int ret = SaveEXRImageToFile(&image, &header, filename, &err);
+        if (ret != TINYEXR_SUCCESS) {
+            fprintf(stderr, "Save EXR err: %s\n", err);
+            FreeEXRErrorMessage(err); // free's buffer for an error message
+            return;
+        }
     }
 }
