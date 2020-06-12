@@ -93,7 +93,7 @@ void Image::SavePng(const char *imageName){
     {
         int rowBegin = y * width * 3;
         for (int i = 0; i < rowLength; i++){
-            fprintf(output, "%d ", (int)_data[rowBegin + i]);
+            fprintf(output, "%d ", (unsigned char)_data[rowBegin + i]);
         }
 
         fprintf(output, "\n");

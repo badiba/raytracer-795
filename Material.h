@@ -5,6 +5,7 @@
 #include "Eigen/Dense"
 
 enum MaterialType{Normal, Mirror, Conductor, Dielectric};
+enum BRDFType{NoBRDF, Obp, Mbp, Mbpn, Op, Mp, Mpn, Ts, Tsf};
 
 class Material
 {
@@ -12,6 +13,7 @@ public:
 	int id;
 	int phongExp = 0;
 	bool isRough;
+	BRDFType _brdfType;
 	MaterialType type;
 
 	Eigen::Vector3f ambientRef;

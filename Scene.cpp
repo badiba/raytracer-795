@@ -467,7 +467,9 @@ Scene::Scene(const char* xmlPath)
 	Parser::ParseCameras(pRoot, cameras);
 
     std::cout << "Parsing materials." << std::endl;
-	Parser::ParseMaterials(pRoot, materials);
+    std::vector<ComponentBRDF> _brdf;
+    Parser::ParseBRDF(pRoot, _brdf);
+	Parser::ParseMaterials(pRoot, materials, _brdf);
 
 	std::cout << "Parsing textures." << std::endl;
 	Parser::ParseTextures(pRoot, xmlPath, textures, images);

@@ -9,6 +9,158 @@ Light::Light(){
 
 }
 
+float Light::DistributionTS(float cosAlpha, int phongExp) {
+    float x = (phongExp + 2.0f) / (2.0f * M_PI);
+    x = x * pow(cosAlpha, phongExp);
+    return x;
+}
+
+float Light::Fresnel(float n_t, float k_t, const Vector3f& ray, const Vector3f& normal){
+    float cos_t = -ray.dot(normal);
+    float twoNtCost = 2 * n_t * cos_t;
+    float cosSquared = pow(cos_t, 2);
+    float nt_ktSquare = pow(n_t, 2) + pow(k_t, 2);
+
+    float rs = (nt_ktSquare - twoNtCost + cosSquared) / (nt_ktSquare + twoNtCost + cosSquared);
+    float rp = (nt_ktSquare * cosSquared - twoNtCost + 1) / (nt_ktSquare * cosSquared + twoNtCost + 1);
+
+    return (0.5f) * (rs + rp);
+}
+
+float Light::FresnelTwo(const Eigen::Vector3f& ray, const ReturnVal& ret, Material* mat) {
+    float nt = mat->refractionIndex;
+    float snell = 1.0f / nt;
+
+    float cosTheta = -ray.dot(ret.normal);
+    Vector3f leftPart = (ray + ret.normal * cosTheta) * snell;
+    float squareRootPart = 1 - pow(snell, 2) * (1 - pow(cosTheta, 2));
+    squareRootPart = sqrt(squareRootPart);
+    Vector3f tDirection = leftPart - (ret.normal * squareRootPart);
+    tDirection = tDirection.normalized();
+
+    float cos_t = -tDirection.dot(ret.normal);
+    float cos_i = -ray.dot(ret.normal);
+
+    float rParallel = (nt * cos_i - 1.0f * cos_t) / (nt * cos_i + 1.0f * cos_t);
+    float rPerpendicular = (1.0f * cos_i - nt * cos_t) / (1.0f * cos_i + nt * cos_t);
+    return (0.5f) * (pow(rParallel, 2) + pow(rPerpendicular, 2));
+}
+
+float Light::GeometryTS(const Eigen::Vector3f &wi, const Eigen::Vector3f &wo, const Eigen::Vector3f &wh,
+        const ReturnVal &ret) {
+    Vector3f n = ret.normal;
+    float left = 2.0f * n.dot(wh) * n.dot(wo);
+    left = left / (wo.dot(wh));
+
+    float right = 2.0f * (n.dot(wh)) * (n.dot(wi));
+    right = right / (wi.dot(wh));
+
+    float x = std::min(left, right);
+    return std::min(1.0f, x);
+}
+
+Vector3f Light::TermBRDF(const Eigen::Vector3f &wi, const Eigen::Vector3f &wo, const ReturnVal& ret, Material* mat) {
+    if (mat->_brdfType == Mp){
+        float n_wi = ret.normal.dot(wi);
+        Vector3f wr = -wi + ret.normal * 2 * n_wi;
+        wr = wr / wr.norm();
+
+        float cosAngle = std::max(0.0f, wr.dot(wo));
+        return mat->diffuseRef + mat->specularRef * pow(cosAngle, mat->phongExp);
+    }
+    else if (mat->_brdfType == Op){
+        float n_wi = ret.normal.dot(wi);
+        Vector3f wr = -wi + ret.normal * 2 * n_wi;
+        wr = wr / wr.norm();
+
+        float cosAngle = std::max(0.0f, wr.dot(wo));
+        float cosTheta_i = std::max(0.0f, wi.dot(ret.normal));
+        if (cosTheta_i < _epsilon){
+            return {0,0,0};
+        }
+        return mat->diffuseRef + (mat->specularRef * pow(cosAngle, mat->phongExp)) / cosTheta_i;
+    }
+    else if (mat->_brdfType == Mpn){
+        float n_wi = ret.normal.dot(wi);
+        Vector3f wr = -wi + ret.normal * 2 * n_wi;
+        wr = wr / wr.norm();
+
+        float cosAngle = std::max(0.0f, wr.dot(wo));
+        int p = mat->phongExp;
+        Vector3f diffusePart = mat->diffuseRef / M_PI;
+        Vector3f specularPart = mat->specularRef * ((p+2) / (2*M_PI)) * pow(cosAngle, p);
+        return diffusePart + specularPart;
+    }
+    else if (mat->_brdfType == Mbp){
+        Vector3f h = (wo + wi).normalized();
+        float nh = ret.normal.dot(h);
+
+        float cosAngle = std::max(0.0f, nh);
+        return mat->diffuseRef + mat->specularRef * pow(cosAngle, mat->phongExp);
+    }
+    else if (mat->_brdfType == Obp){
+        Vector3f h = (wo + wi).normalized();
+        float nh = ret.normal.dot(h);
+
+        float cosAngle = std::max(0.0f, nh);
+        float cosTheta_i = std::max(0.0f, wi.dot(ret.normal));
+        if (cosTheta_i < _epsilon){
+            return {0,0,0};
+        }
+        return mat->diffuseRef + (mat->specularRef * pow(cosAngle, mat->phongExp)) / cosTheta_i;
+    }
+    else if (mat->_brdfType == Mbpn){
+        Vector3f h = (wo + wi).normalized();
+        float nh = ret.normal.dot(h);
+
+        float cosAngle = std::max(0.0f, nh);
+        int p = mat->phongExp;
+        Vector3f diffusePart = mat->diffuseRef / M_PI;
+        Vector3f specularPart = mat->specularRef * ((p+8) / (8*M_PI)) * pow(cosAngle, p);
+        return diffusePart + specularPart;
+    }
+    else if (mat->_brdfType == Ts){
+        Vector3f wh = (wo + wi).normalized();
+
+        Vector3f diffusePart = mat->diffuseRef / M_PI;
+
+        float cosAlpha = wh.dot(ret.normal);
+        float cosTheta = wi.dot(ret.normal);
+        float cosPhi = wo.dot(ret.normal);
+        float g = GeometryTS(wi, wo, wh, ret);
+        float d = DistributionTS(cosAlpha, mat->phongExp);
+        Vector3f specularPart = mat->specularRef * g * d;
+        specularPart = specularPart / (4 * cosPhi * cosTheta);
+
+        return diffusePart + specularPart;
+    }
+    else if (mat->_brdfType == Tsf){
+        Vector3f wh = (wo + wi).normalized();
+
+        float f = Fresnel(mat->refractionIndex, mat->absorptionIndex, -wo, ret.normal);
+        Vector3f diffusePart = mat->diffuseRef / M_PI;
+        diffusePart = diffusePart * (1 - f);
+
+        float cosAlpha = wh.dot(ret.normal);
+        float cosTheta = wi.dot(ret.normal);
+        float cosPhi = wo.dot(ret.normal);
+        float g = GeometryTS(wi, wo, wh, ret);
+        float d = DistributionTS(cosAlpha, mat->phongExp);
+        Vector3f specularPart = mat->specularRef * g * d;
+        specularPart = specularPart / (4.0f * cosPhi * cosTheta);
+        specularPart = specularPart * f;
+
+        return diffusePart + specularPart;
+    }
+}
+
+Vector3f Light::BRDF(const Eigen::Vector3f &wi, const Eigen::Vector3f &wo, const ReturnVal& ret,
+        const Eigen::Vector3f &radiance, Material* mat) {
+    Vector3f brdfTerm = TermBRDF(wi, wo, ret, mat);
+    float cosAngle = std::max(0.0f, wi.dot(ret.normal));
+    return radiance.cwiseProduct(brdfTerm) * cosAngle;
+}
+
 // ----------------------------------------------------- //
 // -------------------- Point Light -------------------- //
 // ----------------------------------------------------- //
@@ -88,6 +240,12 @@ Eigen::Vector3f PointLight::BasicShading(const Ray& primeRay, const ReturnVal& r
         return {0,0,0};
     }
 
+    if (mat->_brdfType != NoBRDF){
+        Vector3f wi = (position - ret.point).normalized();
+        Vector3f radiance = ComputeLightContribution(ret.point);
+        return BRDF(wi, -primeRay.direction, ret, radiance, mat);
+    }
+
     return Diffuse(primeRay, ret, mat) + Specular(primeRay, ret, mat);
 }
 
@@ -151,6 +309,12 @@ Eigen::Vector3f DirectionalLight::Specular(const Ray& primeRay, const ReturnVal&
 Eigen::Vector3f DirectionalLight::BasicShading(const Ray& primeRay, const ReturnVal& ret, Material* mat){
     if (IsShadow(primeRay, ret)){
         return {0,0,0};
+    }
+
+    if (mat->_brdfType != NoBRDF){
+        Vector3f wi = -_direction;
+        Vector3f radiance = _radiance;
+        return BRDF(wi, -primeRay.direction, ret, radiance, mat);
     }
 
     return Diffuse(primeRay, ret, mat) + Specular(primeRay, ret, mat);
@@ -249,9 +413,21 @@ Eigen::Vector3f SpotLight::BasicShading(const Ray& primeRay, const ReturnVal& re
 
     float angle = FindAngle(ret);
     if (angle < _fall){
+        if (mat->_brdfType != NoBRDF){
+            Vector3f wi = (_position - ret.point).normalized();
+            Vector3f radiance = ComputeLightContribution(ret.point);
+            return BRDF(wi, -primeRay.direction, ret, radiance, mat);
+        }
+
         return Diffuse(primeRay, ret, mat) + Specular(primeRay, ret, mat);
     }
     else if (angle < _coverage){
+        if (mat->_brdfType != NoBRDF){
+            Vector3f wi = (_position - ret.point).normalized();
+            Vector3f radiance = ComputeLightContribution(ret.point);
+            return BRDF(wi, -primeRay.direction, ret, radiance, mat) * FallOf(angle);
+        }
+
         return (Diffuse(primeRay, ret, mat) + Specular(primeRay, ret, mat)) * FallOf(angle);
     }
     else{
@@ -274,8 +450,8 @@ AreaLight::AreaLight(const Eigen::Vector3f& position, const Eigen::Vector3f& nor
     _u = GeometryHelpers::GetOrthonormalUVector(_normal);
     _v = _normal.cross(_u);
 
-    mt = std::mt19937 (rd());
-    dist = std::uniform_real_distribution<float>(0.0, 1.0);
+    //mt = std::mt19937 (rd());
+    //dist = std::uniform_real_distribution<float>(0.0, 1.0);
 }
 
 float AreaLight::FindAreaFactor(const Eigen::Vector3f& p, const Eigen::Vector3f& sample) const {
@@ -344,12 +520,25 @@ Eigen::Vector3f AreaLight::Specular(const Ray& primeRay, const ReturnVal& ret, M
 }
 
 Eigen::Vector3f AreaLight::BasicShading(const Ray& primeRay, const ReturnVal& ret, Material* mat){
+    std::random_device rd;
+    std::mt19937 mt;
+    std::uniform_real_distribution<float> dist;
+
+    mt = std::mt19937 (rd());
+    dist = std::uniform_real_distribution<float>(0.0, 1.0);
+
     float uChi = dist(mt) - 0.5f;
     float vChi = dist(mt) - 0.5f;
     Vector3f sample = _position + (_u * _size * uChi) + (_v * _size * vChi);
 
     if (IsShadow(primeRay, ret, sample)){
         return {0,0,0};
+    }
+
+    if (mat->_brdfType != NoBRDF){
+        Vector3f wi = (sample - ret.point).normalized();
+        Vector3f radiance = ComputeLightContribution(ret.point, sample);
+        return BRDF(wi, -primeRay.direction, ret, radiance, mat);
     }
 
     return Diffuse(primeRay, ret, mat, sample) + Specular(primeRay, ret, mat, sample);
@@ -460,6 +649,11 @@ Eigen::Vector3f EnvironmentLight::BasicShading(const Ray& primeRay, const Return
 
     if (IsShadow(primeRay, ret, direction)){
         return {0, 0, 0};
+    }
+
+    if (mat->_brdfType != NoBRDF){
+        Vector3f radiance = ComputeLightContribution(ret, direction);
+        return BRDF(direction, -primeRay.direction, ret, radiance, mat);
     }
 
     return Diffuse(primeRay, ret, mat, direction) + Specular(primeRay, ret, mat, direction);

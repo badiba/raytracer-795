@@ -7,6 +7,12 @@
 using namespace tinyxml2;
 using namespace Eigen;
 
+typedef struct ComponentBRDF{
+    BRDFType typeBRDF;
+    int index;
+    int phongBRDF;
+} ComponentBRDF;
+
 namespace Parser{
     void ParseSceneAttributes(XMLNode* pRoot, int &maxRecursionDepth, Vector3f &backgroundColor, float &shadowRayEps,
             float &intTestEps){
@@ -153,12 +159,149 @@ namespace Parser{
 
             cameras.push_back(new Camera(id, numSamples, imageName, pos, gaze, up, imgPlane, focusDistance, apertureSize,
                     isDof, isLeftHanded));
-
             pCamera = pCamera->NextSiblingElement("Camera");
         }
     }
 
-    void ParseMaterials(XMLNode* pRoot, std::vector<Material*> &materials){
+    void ParseBRDF(XMLNode* pRoot, std::vector<ComponentBRDF> &componentBRDF){
+        const char* str;
+        XMLError eResult;
+        int exponent;
+        int id;
+
+        XMLElement* pElement = pRoot->FirstChildElement("BRDFs");
+        if (pElement == nullptr){
+            return;
+        }
+
+        XMLElement* pBRDF = pElement->FirstChildElement("ModifiedBlinnPhong");
+        XMLElement* brdfElement;
+
+        while(pBRDF != nullptr){
+            eResult = pBRDF->QueryIntAttribute("id", &id);
+
+            brdfElement = pBRDF->FirstChildElement("Exponent");
+            eResult = brdfElement->QueryIntText(&exponent);
+
+            bool normalized = false;
+            const XMLAttribute* attr = pBRDF->FirstAttribute();
+            while (attr != nullptr)
+            {
+                if (std::strncmp(attr->Name(), "normalized", 10) != 0)
+                {
+                    attr = attr->Next();
+                    continue;
+                }
+
+                if (std::strncmp(attr->Value(), "true", 4) == 0)
+                {
+                    normalized = true;
+                }
+                break;
+            }
+
+            if (normalized){
+                componentBRDF.push_back(ComponentBRDF{Mbpn, id, exponent});
+            }
+            else{
+                componentBRDF.push_back(ComponentBRDF{Mbp, id, exponent});
+            }
+
+            pBRDF = pBRDF->NextSiblingElement("ModifiedBlinnPhong");
+        }
+
+        pBRDF = pElement->FirstChildElement("OriginalBlinnPhong");
+        while (pBRDF != nullptr){
+            eResult = pBRDF->QueryIntAttribute("id", &id);
+
+            brdfElement = pBRDF->FirstChildElement("Exponent");
+            eResult = brdfElement->QueryIntText(&exponent);
+
+            componentBRDF.push_back(ComponentBRDF{Obp, id, exponent});
+            pBRDF = pBRDF->NextSiblingElement("OriginalBlinnPhong");
+        }
+
+        pBRDF = pElement->FirstChildElement("ModifiedPhong");
+        while(pBRDF != nullptr){
+            eResult = pBRDF->QueryIntAttribute("id", &id);
+
+            brdfElement = pBRDF->FirstChildElement("Exponent");
+            eResult = brdfElement->QueryIntText(&exponent);
+
+            bool normalized = false;
+            const XMLAttribute* attr = pBRDF->FirstAttribute();
+            while (attr != nullptr)
+            {
+                if (std::strncmp(attr->Name(), "normalized", 10) != 0)
+                {
+                    attr = attr->Next();
+                    continue;
+                }
+
+                if (std::strncmp(attr->Value(), "true", 4) == 0)
+                {
+                    normalized = true;
+                }
+                break;
+            }
+
+            if (normalized){
+                componentBRDF.push_back(ComponentBRDF{Mpn, id, exponent});
+            }
+            else{
+                componentBRDF.push_back(ComponentBRDF{Mp, id, exponent});
+            }
+
+            pBRDF = pBRDF->NextSiblingElement("ModifiedPhong");
+        }
+
+        pBRDF = pElement->FirstChildElement("OriginalPhong");
+        while (pBRDF != nullptr){
+            eResult = pBRDF->QueryIntAttribute("id", &id);
+
+            brdfElement = pBRDF->FirstChildElement("Exponent");
+            eResult = brdfElement->QueryIntText(&exponent);
+
+            componentBRDF.push_back(ComponentBRDF{Op, id, exponent});
+            pBRDF = pBRDF->NextSiblingElement("OriginalPhong");
+        }
+
+        pBRDF = pElement->FirstChildElement("TorranceSparrow");
+        while (pBRDF != nullptr){
+            eResult = pBRDF->QueryIntAttribute("id", &id);
+
+            brdfElement = pBRDF->FirstChildElement("Exponent");
+            eResult = brdfElement->QueryIntText(&exponent);
+
+            bool kdFresnel = false;
+            const XMLAttribute* attr = pBRDF->FirstAttribute();
+            while (attr != nullptr)
+            {
+                if (std::strncmp(attr->Name(), "kdfresnel", 9) != 0)
+                {
+                    attr = attr->Next();
+                    continue;
+                }
+
+                if (std::strncmp(attr->Value(), "true", 4) == 0)
+                {
+                    kdFresnel = true;
+                }
+                break;
+            }
+
+            if (kdFresnel){
+                componentBRDF.push_back(ComponentBRDF{Tsf, id, exponent});
+            }
+            else{
+                componentBRDF.push_back(ComponentBRDF{Ts, id, exponent});
+            }
+
+            pBRDF = pBRDF->NextSiblingElement("TorranceSparrow");
+        }
+    }
+
+    void ParseMaterials(XMLNode* pRoot, std::vector<Material*> &materials, std::vector<ComponentBRDF> &componentBRDF){
         const char* str;
         XMLError eResult;
 
@@ -188,6 +331,18 @@ namespace Parser{
                     degamma = true;
                 }
                 break;
+            }
+
+            int brdfIndex = -1;
+            eResult = pMaterial->QueryIntAttribute("BRDF", &brdfIndex);
+            materials[curr]->_brdfType = BRDFType::NoBRDF;
+            if (brdfIndex != -1){
+                for (int i = 0; i < componentBRDF.size(); i++){
+                    if (componentBRDF[i].index == brdfIndex){
+                        materials[curr]->phongExp = componentBRDF[i].phongBRDF;
+                        materials[curr]->_brdfType = componentBRDF[i].typeBRDF;
+                    }
+                }
             }
 
             materialElement = pMaterial->FirstChildElement("AmbientReflectance");
@@ -1131,6 +1286,9 @@ namespace Parser{
             str = lightElement->GetText();
             sscanf(str, "%f %f %f", &direction(0), &direction(1), &direction(2));
             lightElement = pLight->FirstChildElement("Radiance");
+            if (lightElement == nullptr){
+                lightElement = pLight->FirstChildElement("Intensity");
+            }
             str = lightElement->GetText();
             sscanf(str, "%f %f %f", &radiance(0), &radiance(1), &radiance(2));
             lightElement = pLight->FirstChildElement("Size");

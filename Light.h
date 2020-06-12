@@ -13,12 +13,21 @@ enum LightType{Point, Area, Directional, Spot, Environment};
 
 class Light{
 private:
+    float _epsilon = 0.001f;
 
 protected:
     LightType _type;
 
 public:
     Light();
+    float DistributionTS(float alpha, int phongExp);
+    float GeometryTS(const Eigen::Vector3f& wi, const Eigen::Vector3f& wo, const Eigen::Vector3f& wh,
+                     const ReturnVal& ret);
+    float FresnelTwo(const Eigen::Vector3f& ray, const ReturnVal& ret, Material* mat);
+    float Fresnel(float n_t, float k_t, const Eigen::Vector3f& ray, const Eigen::Vector3f& normal);
+    Eigen::Vector3f TermBRDF(const Eigen::Vector3f& wi, const Eigen::Vector3f& wo, const ReturnVal& ret, Material* mat);
+    Eigen::Vector3f BRDF(const Eigen::Vector3f &wi, const Eigen::Vector3f &wo, const ReturnVal& ret,
+            const Eigen::Vector3f &radiance, Material* mat);
     virtual LightType GetType() const = 0;
     virtual Eigen::Vector3f BasicShading(const Ray& primeRay, const ReturnVal& ret, Material* mat) = 0;
 };
@@ -92,9 +101,9 @@ private:
     Eigen::Vector3f _u;
     Eigen::Vector3f _v;
 
-    std::random_device rd;
-    std::mt19937 mt;
-    std::uniform_real_distribution<float> dist;
+    //std::random_device rd;
+    //std::mt19937 mt;
+    //std::uniform_real_distribution<float> dist;
 
     float FindAreaFactor(const Eigen::Vector3f& p, const Eigen::Vector3f& sample) const;
 

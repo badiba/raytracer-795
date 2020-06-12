@@ -19,7 +19,7 @@ typedef struct ImagePlane
 class Camera
 {
 public:
-	char imageName[32];
+	char imageName[64];
 	int id;
 	ImagePlane imgPlane;     // Image plane
 
