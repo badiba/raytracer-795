@@ -34,7 +34,7 @@ One other observation is that whenever Russian Roulette is enabled, rendering ti
 
 Secondly, I couldn't find time to fix my tonemapper before the deadline of this assignment due to final exams. I had few days left for this homework when my last final exam was over. So, I spent all my time on implementing it and couldn't fix tonemapper on time. Therefore, I tonemapped exr files using external tools which means there might be minor differences between the results below and their correctly tonemapped versions.
 
-Finally, for veach-ajar, I couldn't find time to render it with 6400 samples. Intead, below result is produced with 100 samples. One other thing about this scene is that I forgot to add degamma property in textures. Therefore the door and the painting in the scene looks white in my submission.
+Finally, for veach-ajar scene, I didn't know that this scene was included in the homework. Therefore, I had very little time to work on it (originally I was planning to work on it after the homework deadline). I couldn't find time to render it with 6400 samples. Intead, below result is produced with 100 samples. One other thing about this scene is that I forgot to add degamma property in textures in my first render. I noticed that when I got my result, and I had just few minutes before the deadline. Thus I didn't have enough time to fix it. Therefore the door and the painting in the scene looks white in my submission.
 
 ![Sc](/../assets/hw7/hw7-2-1.jpg)
 
