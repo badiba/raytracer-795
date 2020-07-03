@@ -17,6 +17,8 @@ If applicable, time comparisons of different implementations are also added in t
 
 Different versions of the Ray Tracer are provided below. Version at the top is the latest.
 
+[7. Path Tracing](/pages/Page7.md)
+
 [6. BRDF](/pages/Page6.md)
 
 [5. HDR Imaging and Advanced Lights](/pages/Page5.md)
