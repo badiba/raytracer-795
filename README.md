@@ -13,12 +13,6 @@ This section includes different versions of the Ray Tracer. In every new version
 
 If applicable, time comparisons of different implementations are also added in these subsections.
 
-## Project
-
-My project assignment was to convert a complex scene into our file format. Process of converting [spaceship](https://benedikt-bitterli.me/resources/images/spaceship.png) scene into our file format is explained in this subsection.
-
-[Project Assignment](/pages/Project.md)
-
 ## Versions
 
 Different versions of the Ray Tracer are provided below. Version at the top is the latest.
@@ -37,3 +31,8 @@ Different versions of the Ray Tracer are provided below. Version at the top is t
 
 [1. Basic Ray Tracer](/pages/Page1.md)
 
+## Other
+
+Converted a complex scene into our file format. Process of converting [spaceship](https://benedikt-bitterli.me/resources/images/spaceship.png) scene into our file format is explained in this subsection.
+
+[Project Assignment](/pages/Project.md)
