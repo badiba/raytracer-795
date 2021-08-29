@@ -1,10 +1,10 @@
 # Introduction
 
-This page includes technical information and personal experiences on the homeworks of CENG795 Advanced Ray Tracing class. It is under development and updated frequently. Owner of this page is Bahadir Coskun.
+This page includes technical information and personal experiences on the homeworks of CENG795 Advanced Ray Tracing class.
 
 # Content
 
-This section includes different versions of the Ray Tracer. In every new version, new features are added. Each version has it's own subsection. These subsections include;
+This section includes different versions of the Ray Tracer. Each version has it's own subsection. These subsections include:
 
 - brief explanations of what is being added in that version, 
 - resulting images in that version,
@@ -30,9 +30,3 @@ Different versions of the Ray Tracer are provided below. Version at the top is t
 [2. Recursive Ray Tracing](/pages/Page2.md)
 
 [1. Basic Ray Tracer](/pages/Page1.md)
-
-## Other
-
-Converted a complex scene into our file format. Process of converting [spaceship](https://benedikt-bitterli.me/resources/images/spaceship.png) scene into our file format is explained in this subsection.
-
-[Project Assignment](/pages/Project.md)
