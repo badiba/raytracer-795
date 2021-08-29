@@ -6,10 +6,10 @@ This page includes technical information and personal experiences on the homewor
 
 This section includes different versions of the Ray Tracer. Each version has it's own subsection. These subsections include:
 
-- brief explanations of what is being added in that version, 
-- resulting images in that version,
-- what kind of bugs have been encountered and how did I manage to fix them, 
-- my personal experiences. 
+- Brief explanations of what is being added in that version.
+- Resulting images in that version.
+- What kind of bugs have been encountered and how did I manage to fix them.
+- My personal experiences.
 
 If applicable, time comparisons of different implementations are also added in these subsections.
 
